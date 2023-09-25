@@ -32,31 +32,41 @@ class Portal {
     this.collab = collab;
   }
 
-  open(socket: SocketIOClient.Socket, id: string, key: string) {
-    this.socket = socket;
-    this.roomId = id;
-    this.roomKey = key;
+  // open(socket: SocketIOClient.Socket, id: string, key: string) {
+  //   this.socket = socket;
+  //   this.roomId = id;
+  //   this.roomKey = key;
 
-    // Initialize socket listeners
-    this.socket.on("init-room", () => {
-      if (this.socket) {
-        this.socket.emit("join-room", this.roomId);
-        trackEvent("share", "room joined");
-      }
-    });
-    this.socket.on("new-user", async (_socketId: string) => {
-      this.broadcastScene(
-        WS_SCENE_EVENT_TYPES.INIT,
-        this.collab.getSceneElementsIncludingDeleted(),
-        /* syncAll */ true,
-      );
-    });
-    this.socket.on("room-user-change", (clients: string[]) => {
-      this.collab.setCollaborators(clients);
-    });
+  //   // Initialize socket listeners
+  //   this.socket.on("init-room", () => {
+  //     if (this.socket) {
+  //       this.socket.emit("join-room", this.roomId);
+  //       trackEvent("share", "room joined");
+  //     }
+  //   });
+  //   this.socket.on("new-user", async (_socketId: string) => {
+  //     /**
+  //      *
+  //      *
+  //      *
+  //      * WHEN A NEW USER JOIN THE ROOM OTHER COLLABORATORS RECIEVES THE INIT EVENT  AND THE CURRENT USER
+  //      * ENTIRE SCENE IS BROADCASTED TO THE SERVER, SO SERVER CAN SEND TO THE NEW USER
+  //      *
+  //      *
+  //      *
+  //      */
+  //     this.broadcastScene(
+  //       WS_SCENE_EVENT_TYPES.INIT,
+  //       this.collab.getSceneElementsIncludingDeleted(),
+  //       /* syncAll */ true,
+  //     );
+  //   });
+  //   this.socket.on("room-user-change", (clients: string[]) => {
+  //     this.collab.setCollaborators(clients);
+  //   });
 
-    return socket;
-  }
+  //   return socket;
+  // }
 
   close() {
     if (!this.socket) {
@@ -88,7 +98,15 @@ class Portal {
       const json = JSON.stringify(data);
       const encoded = new TextEncoder().encode(json);
       const { encryptedBuffer, iv } = await encryptData(this.roomKey!, encoded);
-
+      /**
+       *
+       *
+       *
+       * INSTEAD OF EMITTING TO SOCKET THIS IS THE ACTUAL PLACE TO SAVE CONTENTS TO GUN
+       *
+       *
+       *
+       */
       this.socket?.emit(
         volatile ? WS_EVENTS.SERVER_VOLATILE : WS_EVENTS.SERVER,
         this.roomId,
@@ -129,55 +147,50 @@ class Portal {
     });
   }, FILE_UPLOAD_TIMEOUT);
 
-  broadcastScene = async (
-    updateType: WS_SCENE_EVENT_TYPES.INIT | WS_SCENE_EVENT_TYPES.UPDATE,
-    allElements: readonly ExcalidrawElement[],
-    syncAll: boolean,
-  ) => {
-    if (updateType === WS_SCENE_EVENT_TYPES.INIT && !syncAll) {
-      throw new Error("syncAll must be true when sending SCENE.INIT");
-    }
-
+  broadcastScene = async (allElements: readonly ExcalidrawElement[]) => {
+    // if (updateType === WS_SCENE_EVENT_TYPES.INIT && !syncAll) {
+    //   throw new Error("syncAll must be true when sending SCENE.INIT");
+    // }
     // sync out only the elements we think we need to to save bandwidth.
     // periodically we'll resync the whole thing to make sure no one diverges
     // due to a dropped message (server goes down etc).
-    const syncableElements = allElements.reduce(
-      (acc, element: BroadcastedExcalidrawElement, idx, elements) => {
-        if (
-          (syncAll ||
-            !this.broadcastedElementVersions.has(element.id) ||
-            element.version >
-              this.broadcastedElementVersions.get(element.id)!) &&
-          isSyncableElement(element)
-        ) {
-          acc.push({
-            ...element,
-            // z-index info for the reconciler
-            [PRECEDING_ELEMENT_KEY]: idx === 0 ? "^" : elements[idx - 1]?.id,
-          });
-        }
-        return acc;
-      },
-      [] as BroadcastedExcalidrawElement[],
-    );
-
-    const data: SocketUpdateDataSource[typeof updateType] = {
-      type: updateType,
-      payload: {
-        elements: syncableElements,
-      },
-    };
-
-    for (const syncableElement of syncableElements) {
-      this.broadcastedElementVersions.set(
-        syncableElement.id,
-        syncableElement.version,
-      );
-    }
-
-    this.queueFileUpload();
-
-    await this._broadcastSocketData(data as SocketUpdateData);
+    // const syncableElements = allElements.reduce(
+    //   (acc, element: BroadcastedExcalidrawElement, idx, elements) => {
+    //     if (
+    //       (syncAll ||
+    //         !this.broadcastedElementVersions.has(element.id) ||
+    //         element.version >
+    //           this.broadcastedElementVersions.get(element.id)!) &&
+    //       isSyncableElement(element)
+    //     ) {
+    //       acc.push({
+    //         ...element,
+    //         // z-index info for the reconciler
+    //         [PRECEDING_ELEMENT_KEY]: idx === 0 ? "^" : elements[idx - 1]?.id,
+    //       });
+    //     }
+    //     return acc;
+    //   },
+    //   [] as BroadcastedExcalidrawElement[],
+    // );
+    // const data = {
+    //   elements: syncableElements,
+    // };
+    // for (const syncableElement of syncableElements) {
+    //   this.broadcastedElementVersions.set(
+    //     syncableElement.id,
+    //     syncableElement.version,
+    //   );
+    // }
+    // this.queueFileUpload();
+    /***
+     *
+     *
+     * INSTEAD OF BROADCASTING TO SOCKET MAKE THE YDOC TRANSACTION HERE
+     * USING this._broadcastSocketData(data as SocketUpdateData)
+     *
+     */
+    // await this._saveCanvasDataOnGun(data as SocketUpdateData);
   };
 
   broadcastIdleChange = (userState: UserIdleState) => {

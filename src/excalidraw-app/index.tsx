@@ -5,6 +5,7 @@ import { trackEvent } from "../analytics";
 import { getDefaultAppState } from "../appState";
 import { ErrorDialog } from "../components/ErrorDialog";
 import { TopErrorBoundary } from "../components/TopErrorBoundary";
+import * as Y from "yjs";
 import {
   APP_NAME,
   EVENT,
@@ -60,7 +61,6 @@ import {
   exportToBackend,
   getCollaborationLinkData,
   isCollaborationLink,
-  loadScene,
 } from "./data";
 import {
   getLibraryItemsFromStorage,
@@ -95,6 +95,9 @@ import { ShareableLinkDialog } from "../components/ShareableLinkDialog";
 import { openConfirmModal } from "../components/OverwriteConfirm/OverwriteConfirmState";
 import { OverwriteConfirmDialog } from "../components/OverwriteConfirm/OverwriteConfirm";
 import Trans from "../components/Trans";
+import { IndexeddbPersistence } from "y-indexeddb";
+import { ISEAPair } from "gun";
+import { Base64 } from "base64-string";
 
 polyfill();
 
@@ -135,133 +138,61 @@ const shareableLinkConfirmDialog = {
 const initializeScene = async (opts: {
   collabAPI: CollabAPI | null;
   excalidrawAPI: ExcalidrawImperativeAPI;
-}): Promise<
-  { scene: ExcalidrawInitialDataState | null } & (
-    | { isExternalScene: true; id: string; key: string }
-    | { isExternalScene: false; id?: null; key?: null }
-  )
-> => {
-  const searchParams = new URLSearchParams(window.location.search);
-  const id = searchParams.get("id");
-  const jsonBackendMatch = window.location.hash.match(
-    /^#json=([a-zA-Z0-9_-]+),([a-zA-Z0-9_-]+)$/,
-  );
-  const externalUrlMatch = window.location.hash.match(/^#url=(.*)$/);
+  provider: IndexeddbPersistence;
+  canvasId: string;
+}) => {
+  const scene = await Promise.race([
+    new Promise((resolve) => {
+      opts.provider.on("synced", (data: IndexeddbPersistence) => {
+        resolve(data.doc.getMap(opts.canvasId).toJSON());
+      });
+    }),
+    new Promise((resolve) => {
+      setTimeout(() => resolve(null), 2000);
+    }),
+  ]);
 
-  const localDataState = importFromLocalStorage();
-
-  let scene: RestoredDataState & {
-    scrollToContent?: boolean;
-  } = await loadScene(null, null, localDataState);
-
-  let roomLinkData = getCollaborationLinkData(window.location.href);
-  const isExternalScene = !!(id || jsonBackendMatch || roomLinkData);
-  if (isExternalScene) {
-    if (
-      // don't prompt if scene is empty
-      !scene.elements.length ||
-      // don't prompt for collab scenes because we don't override local storage
-      roomLinkData ||
-      // otherwise, prompt whether user wants to override current scene
-      (await openConfirmModal(shareableLinkConfirmDialog))
-    ) {
-      if (jsonBackendMatch) {
-        scene = await loadScene(
-          jsonBackendMatch[1],
-          jsonBackendMatch[2],
-          localDataState,
-        );
-      }
-      scene.scrollToContent = true;
-      if (!roomLinkData) {
-        window.history.replaceState({}, APP_NAME, window.location.origin);
-      }
-    } else {
-      // https://github.com/excalidraw/excalidraw/issues/1919
-      if (document.hidden) {
-        return new Promise((resolve, reject) => {
-          window.addEventListener(
-            "focus",
-            () => initializeScene(opts).then(resolve).catch(reject),
-            {
-              once: true,
-            },
-          );
-        });
-      }
-
-      roomLinkData = null;
-      window.history.replaceState({}, APP_NAME, window.location.origin);
-    }
-  } else if (externalUrlMatch) {
-    window.history.replaceState({}, APP_NAME, window.location.origin);
-
-    const url = externalUrlMatch[1];
-    try {
-      const request = await fetch(window.decodeURIComponent(url));
-      const data = await loadFromBlob(await request.blob(), null, null);
-      if (
-        !scene.elements.length ||
-        (await openConfirmModal(shareableLinkConfirmDialog))
-      ) {
-        return { scene: data, isExternalScene };
-      }
-    } catch (error: any) {
-      return {
-        scene: {
-          appState: {
-            errorMessage: t("alerts.invalidSceneUrl"),
-          },
-        },
-        isExternalScene,
-      };
-    }
+  console.log(scene, "scene from indexDB");
+  //@ts-ignore
+  const data = restore(scene || null, null, null, {
+    repairBindings: true,
+  });
+  console.log(data, "restored APPSTATE");
+  if (opts.collabAPI && opts.excalidrawAPI) {
+    await opts.collabAPI.startCollaboration();
   }
-
-  if (roomLinkData && opts.collabAPI) {
-    const { excalidrawAPI } = opts;
-
-    const scene = await opts.collabAPI.startCollaboration(roomLinkData);
-
-    return {
-      // when collaborating, the state may have already been updated at this
-      // point (we may have received updates from other clients), so reconcile
-      // elements and appState with existing state
-      scene: {
-        ...scene,
-        appState: {
-          ...restoreAppState(
-            {
-              ...scene?.appState,
-              theme: localDataState?.appState?.theme || scene?.appState?.theme,
-            },
-            excalidrawAPI.getAppState(),
-          ),
-          // necessary if we're invoking from a hashchange handler which doesn't
-          // go through App.initializeScene() that resets this flag
-          isLoading: false,
-        },
-        elements: reconcileElements(
-          scene?.elements || [],
-          excalidrawAPI.getSceneElementsIncludingDeleted(),
-          excalidrawAPI.getAppState(),
-        ),
-      },
-      isExternalScene: true,
-      id: roomLinkData.roomId,
-      key: roomLinkData.roomKey,
-    };
-  } else if (scene) {
-    return isExternalScene && jsonBackendMatch
-      ? {
-          scene,
-          isExternalScene,
-          id: jsonBackendMatch[1],
-          key: jsonBackendMatch[2],
-        }
-      : { scene, isExternalScene: false };
+  return {
+    elements: data.elements,
+    appState: {
+      ...data?.appState,
+      collaborators: new Map(Object.entries(data?.appState?.collaborators)),
+    },
+    files: data.files,
+    commitToHistory: false,
+  };
+};
+const getISEAKeyPair = (key: string | undefined): ISEAPair | undefined => {
+  if (!key) {
+    return;
   }
-  return { scene: null, isExternalScene: false };
+  const enc = new Base64();
+  const b64 = enc.decode(key);
+  return JSON.parse(b64)?.seaKeyPair;
+};
+const getRoomInfoFromLink = (link: string) => {
+  const formatedLink = link.replace("/#", "");
+  const url = new URL(formatedLink);
+
+  const urlSearchParams = url.searchParams;
+  const rtcId = url.pathname
+    .substring(url.pathname.lastIndexOf("/"))
+    .replace("/", "");
+  const collabParams = urlSearchParams.get("collab");
+  const rtcKey = urlSearchParams.get("key");
+  const path = url.pathname.substring(1, url.pathname.length);
+  const contractAddress = path.substring(0, path.indexOf("/"));
+  const key = getISEAKeyPair(rtcKey as string);
+  return { rtcId, collabParams, rtcKey: key, contractAddress };
 };
 
 const detectedLangCode = languageDetector.detect() || defaultLang.code;
@@ -273,6 +204,15 @@ const ExcalidrawWrapper = () => {
   const [errorMessage, setErrorMessage] = useState("");
   const [langCode, setLangCode] = useAtom(appLangCodeAtom);
   const isCollabDisabled = isRunningInIframe();
+  const {
+    rtcId: canvasId,
+    rtcKey: canvasDecryptionkey,
+    contractAddress,
+    collabParams,
+  } = getRoomInfoFromLink(window.location.href);
+  const ydoc = new Y.Doc();
+  const yMap = ydoc.getMap(canvasId);
+  const provider = new IndexeddbPersistence(canvasId, ydoc);
 
   // initial state
   // ---------------------------------------------------------------------------
@@ -311,77 +251,14 @@ const ExcalidrawWrapper = () => {
     if (!excalidrawAPI || (!isCollabDisabled && !collabAPI)) {
       return;
     }
-
-    const loadImages = (
-      data: ResolutionType<typeof initializeScene>,
-      isInitialLoad = false,
-    ) => {
-      if (!data.scene) {
-        return;
-      }
-      if (collabAPI?.isCollaborating()) {
-        if (data.scene.elements) {
-          collabAPI
-            .fetchImageFilesFromFirebase({
-              elements: data.scene.elements,
-              forceFetchFiles: true,
-            })
-            .then(({ loadedFiles, erroredFiles }) => {
-              excalidrawAPI.addFiles(loadedFiles);
-              updateStaleImageStatuses({
-                excalidrawAPI,
-                erroredFiles,
-                elements: excalidrawAPI.getSceneElementsIncludingDeleted(),
-              });
-            });
-        }
-      } else {
-        const fileIds =
-          data.scene.elements?.reduce((acc, element) => {
-            if (isInitializedImageElement(element)) {
-              return acc.concat(element.fileId);
-            }
-            return acc;
-          }, [] as FileId[]) || [];
-
-        if (data.isExternalScene) {
-          loadFilesFromFirebase(
-            `${FIREBASE_STORAGE_PREFIXES.shareLinkFiles}/${data.id}`,
-            data.key,
-            fileIds,
-          ).then(({ loadedFiles, erroredFiles }) => {
-            excalidrawAPI.addFiles(loadedFiles);
-            updateStaleImageStatuses({
-              excalidrawAPI,
-              erroredFiles,
-              elements: excalidrawAPI.getSceneElementsIncludingDeleted(),
-            });
-          });
-        } else if (isInitialLoad) {
-          if (fileIds.length) {
-            LocalData.fileStorage
-              .getFiles(fileIds)
-              .then(({ loadedFiles, erroredFiles }) => {
-                if (loadedFiles.length) {
-                  excalidrawAPI.addFiles(loadedFiles);
-                }
-                updateStaleImageStatuses({
-                  excalidrawAPI,
-                  erroredFiles,
-                  elements: excalidrawAPI.getSceneElementsIncludingDeleted(),
-                });
-              });
-          }
-          // on fresh load, clear unused files from IDB (from previous
-          // session)
-          LocalData.fileStorage.clearObsoleteFiles({ currentFileIds: fileIds });
-        }
-      }
-    };
-
-    initializeScene({ collabAPI, excalidrawAPI }).then(async (data) => {
-      loadImages(data, /* isInitialLoad */ true);
-      initialStatePromiseRef.current.promise.resolve(data.scene);
+    initializeScene({
+      collabAPI,
+      excalidrawAPI,
+      provider,
+      canvasId,
+    }).then((data) => {
+      console.log(data, "DATA ABOUT TO BE INJECTED");
+      initialStatePromiseRef.current.promise.resolve(data);
     });
 
     const onHashChange = async (event: HashChangeEvent) => {
@@ -396,15 +273,11 @@ const ExcalidrawWrapper = () => {
         }
         excalidrawAPI.updateScene({ appState: { isLoading: true } });
 
-        initializeScene({ collabAPI, excalidrawAPI }).then((data) => {
-          loadImages(data);
-          if (data.scene) {
-            excalidrawAPI.updateScene({
-              ...data.scene,
-              ...restore(data.scene, null, null, { repairBindings: true }),
-              commitToHistory: true,
-            });
-          }
+        initializeScene({
+          collabAPI,
+          excalidrawAPI,
+          provider,
+          canvasId,
         });
       }
     };
@@ -422,6 +295,7 @@ const ExcalidrawWrapper = () => {
         !document.hidden &&
         ((collabAPI && !collabAPI.isCollaborating()) || isCollabDisabled)
       ) {
+        console.log("HITTING THE BLUR API");
         // don't sync if local state is newer or identical to browser state
         if (isBrowserStorageStateNewer(STORAGE_KEYS.VERSION_DATA_STATE)) {
           const localDataState = importFromLocalStorage();
@@ -431,6 +305,7 @@ const ExcalidrawWrapper = () => {
             langCode = langCode[0];
           }
           setLangCode(langCode);
+          console.log(localDataState);
           excalidrawAPI.updateScene({
             ...localDataState,
           });
@@ -477,9 +352,6 @@ const ExcalidrawWrapper = () => {
     };
 
     const visibilityChange = (event: FocusEvent | Event) => {
-      if (event.type === EVENT.BLUR || document.hidden) {
-        LocalData.flushSave();
-      }
       if (
         event.type === EVENT.VISIBILITY_CHANGE ||
         event.type === EVENT.FOCUS
@@ -552,42 +424,13 @@ const ExcalidrawWrapper = () => {
     appState: AppState,
     files: BinaryFiles,
   ) => {
-    if (collabAPI?.isCollaborating()) {
-      collabAPI.syncElements(elements);
+    console.log(collabAPI, "collabAPI");
+    if (collabAPI) {
+      console.log("sync these elements bruv!");
+      collabAPI.syncElements(elements, appState);
     }
 
     setTheme(appState.theme);
-
-    // this check is redundant, but since this is a hot path, it's best
-    // not to evaludate the nested expression every time
-    if (!LocalData.isSavePaused()) {
-      LocalData.save(elements, appState, files, () => {
-        if (excalidrawAPI) {
-          let didChange = false;
-
-          const elements = excalidrawAPI
-            .getSceneElementsIncludingDeleted()
-            .map((element) => {
-              if (
-                LocalData.fileStorage.shouldUpdateImageElementStatus(element)
-              ) {
-                const newElement = newElementWith(element, { status: "saved" });
-                if (newElement !== element) {
-                  didChange = true;
-                }
-                return newElement;
-              }
-              return element;
-            });
-
-          if (didChange) {
-            excalidrawAPI.updateScene({
-              elements,
-            });
-          }
-        }
-      });
-    }
   };
 
   const [latestShareableLink, setLatestShareableLink] = useState<string | null>(
@@ -774,7 +617,14 @@ const ExcalidrawWrapper = () => {
           />
         )}
         {excalidrawAPI && !isCollabDisabled && (
-          <Collab excalidrawAPI={excalidrawAPI} />
+          <Collab
+            yMap={yMap}
+            isNewCollaborating={collabParams === "true"}
+            contractAddress={contractAddress}
+            decryptionKey={canvasDecryptionkey as ISEAPair}
+            canvasId={canvasId}
+            excalidrawAPI={excalidrawAPI}
+          />
         )}
         {errorMessage && (
           <ErrorDialog onClose={() => setErrorMessage("")}>

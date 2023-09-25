@@ -246,41 +246,88 @@ const importFromBackend = async (
     return {};
   }
 };
+// const importFromGun = async ({
+//   decryptionKey,
+//   contractAddress,
+//   canvasId,
+// }: {
+//   decryptionKey: ISEAPair;
+//   contractAddress: string;
+//   canvasId: string;
+// }): Promise<ImportedDataState> => {
+//   const content = await Promise.race([
+//     new Promise((resolve) => {
+//       const contentNode = instantiateGun()
+//         .user()
+//         .auth(decryptionKey as ISEAPair)
+//         .get(`${contractAddress}/document/content/${docId}`);
+//       contentNode.on((doc: ImportedDataState) => {
+//         resolve(doc);
+//         contentNode.off();
+//       });
+//     }),
+//     new Promise((resolve) =>
+//       setTimeout(
+//         () =>
+//           resolve({
+//             element: null,
+//             appState: null,
+//           }),
+//         2000,
+//       ),
+//     ),
+//   ]);
+//   return content as ImportedDataState;
+// };
 
-export const loadScene = async (
-  id: string | null,
-  privateKey: string | null,
-  // Supply local state even if importing from backend to ensure we restore
-  // localStorage user settings which we do not persist on server.
-  // Non-optional so we don't forget to pass it even if `undefined`.
-  localDataState: ImportedDataState | undefined | null,
-) => {
-  let data;
-  if (id != null && privateKey != null) {
-    // the private key is used to decrypt the content from the server, take
-    // extra care not to leak it
-    data = restore(
-      await importFromBackend(id, privateKey),
-      localDataState?.appState,
-      localDataState?.elements,
-      { repairBindings: true, refreshDimensions: false },
-    );
-  } else {
-    data = restore(localDataState || null, null, null, {
-      repairBindings: true,
-    });
-  }
+// export const loadScene = async (
+//   canvasId: string | null,
+//   decryptionKey: string | null,
+//   // Supply local state even if importing from backend to ensure we restore
+//   // localStorage user settings which we do not persist on server.
+//   // Non-optional so we don't forget to pass it even if `undefined`.
+//   localDataState: ImportedDataState | undefined | null,
+//   contractAddress: string,
+// ) => {
+//   let data;
+//   if (canvasId != null && decryptionKey != null) {
+//     // the private key is used to decrypt the content from the server, take
+//     // extra care not to leak it
+//     /**
+//      *
+//      *
+//      * AT THIS POINT GET WHITEBOARD CONTENT FROM GUN
+//      * CREATE THE FUNCTIONALITY IN importFromBackend
+//      *
+//      *
+//      */
+//     data = restore(
+//       await importFromGun({
+//         canvasId,
+//         decryptionKey,
+//         contractAddress,
+//       }),
+//       localDataState?.appState,
+//       localDataState?.elements,
+//       { repairBindings: true, refreshDimensions: false },
+//     );
+//   } else {
+//     data = restore(localDataState || null, null, null, {
+//       repairBindings: true,
+//     });
+//   }
 
-  return {
-    elements: data.elements,
-    appState: data.appState,
-    // note: this will always be empty because we're not storing files
-    // in the scene database/localStorage, and instead fetch them async
-    // from a different database
-    files: data.files,
-    commitToHistory: false,
-  };
-};
+//   return {
+//     elements: data.elements,
+//     appState: data.appState,
+//     // note: this will always be empty because we're not storing files
+//     // in the scene database/localStorage, and instead fetch them async
+//     // from a different database
+
+//     // files: data?.files,
+//     commitToHistory: false,
+//   };
+// };
 
 type ExportToBackendResult =
   | { url: null; errorMessage: string }

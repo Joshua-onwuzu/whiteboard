@@ -663,6 +663,7 @@ export default function App({ appTitle, useCustom, customArgs }: AppProps) {
             <div>y: {pointerData?.pointer.y ?? 0}</div>
           </div>
         </div>
+        {/* WHITEBOARD COMPONENT */}
         <div className="excalidraw-wrapper">
           <Excalidraw
             ref={(api: ExcalidrawImperativeAPI) => setExcalidrawAPI(api)}
@@ -727,6 +728,7 @@ export default function App({ appTitle, useCustom, customArgs }: AppProps) {
           {Object.keys(commentIcons || []).length > 0 && renderCommentIcons()}
           {comment && renderComment()}
         </div>
+        {/* END OF WHITBOARD COMPONENT */}
 
         <div className="export-wrapper button-wrapper">
           <label className="export-wrapper__checkbox">

@@ -1977,7 +1977,7 @@ class App extends React.Component<AppProps, AppState> {
       );
     }
     this.history.record(this.state, this.scene.getElementsIncludingDeleted());
-
+    console.log(this.state.isLoading, "Loading state");
     // Do not notify consumers if we're still loading the scene. Among other
     // potential issues, this fixes a case where the tab isn't focused during
     // init, which would trigger onChange with empty elements, which would then
@@ -7508,6 +7508,7 @@ class App extends React.Component<AppProps, AppState> {
         return;
       }
     } catch (error: any) {
+      console.log("SETTING IS LOADING TO FALSE");
       return this.setState({
         isLoading: false,
         errorMessage: error.message,
@@ -7590,6 +7591,7 @@ class App extends React.Component<AppProps, AppState> {
           });
       }
     } catch (error: any) {
+      console.log("DEMOOOOOOOO");
       this.setState({ isLoading: false, errorMessage: error.message });
     }
   };

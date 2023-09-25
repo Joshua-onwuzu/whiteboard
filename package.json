@@ -28,6 +28,7 @@
     "@testing-library/jest-dom": "5.16.2",
     "@testing-library/react": "12.1.5",
     "@tldraw/vec": "1.7.1",
+    "base64-string": "1.1.2",
     "browser-fs-access": "0.29.1",
     "canvas-roundrect-polyfill": "0.0.1",
     "clsx": "1.1.1",
@@ -35,10 +36,12 @@
     "eslint-plugin-react": "7.32.2",
     "fake-indexeddb": "3.1.7",
     "firebase": "8.3.3",
+    "gun": "0.2020.1239",
     "i18next-browser-languagedetector": "6.1.4",
     "idb-keyval": "6.0.3",
     "image-blob-reduce": "3.0.1",
     "jotai": "1.13.1",
+    "js-base64": "3.7.5",
     "lodash.throttle": "4.1.1",
     "nanoid": "3.3.3",
     "open-color": "1.9.1",
@@ -55,7 +58,10 @@
     "roughjs": "4.5.2",
     "sass": "1.51.0",
     "socket.io-client": "2.3.1",
-    "tunnel-rat": "0.1.2"
+    "tunnel-rat": "0.1.2",
+    "y-indexeddb": "9.0.11",
+    "y-webrtc": "10.2.5",
+    "yjs": "13.6.8"
   },
   "devDependencies": {
     "@excalidraw/eslint-config": "1.0.3",
