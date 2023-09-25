@@ -102,7 +102,7 @@ export interface CollabAPI {
 }
 export const instantiateGun = () => {
   return Gun({
-    peers: [process.env.REACT_APP_GUN_URL || "http://localhost:8765/gun"],
+    peers: ["http://localhost:8765/gun"],
   });
 };
 export const instantiateSEA = () => {
@@ -327,8 +327,10 @@ class Collab extends PureComponent<Props, CollabState> {
           .user()
           .auth(decryptionKey as ISEAPair)
           .get(`${contractAddress}/document/content/${canvasId}`);
-        contentNode.on((doc: ExcalidrawElement) => {
-          resolve(doc);
+        contentNode.on(async (data: string) => {
+          const decryptedData: { elements: readonly ExcalidrawElement[] } =
+            await Sea.decrypt(data, this.decryptionKey);
+          resolve(decryptedData.elements);
           contentNode.off();
         });
       }),
@@ -371,9 +373,8 @@ class Collab extends PureComponent<Props, CollabState> {
      */
 
     this.yMap.observe((event: any) => {
-      console.log("changes was observed on yMap");
       if (event.transaction.origin !== this) {
-        console.log("and it was from indexddb", this.yMap.toJSON());
+        console.log("CHANGE IS DETECTED IN TYPE AND ITS EXTERNAL");
         const el = this.yMap.toJSON()?.elements;
         const canvasReconciledElements = this.reconcileElements(el as any);
         this.excalidrawAPI.updateScene({
@@ -382,11 +383,8 @@ class Collab extends PureComponent<Props, CollabState> {
         });
       }
     });
-    this.yMap.doc?.on("update", (data) => {
-      // console.log(fromUint8Array(data), "YDOC LISTENER GOT THE UPDATE");
-      // saveCanvasElementsToGun();
-    });
     if (this.isNewCollaborating) {
+      console.log("I AM ABOUT TO INSTANTIATE RTC ");
       new WebrtcProvider(this.canvasId, this.yMap?.doc as Y.Doc, {
         signaling: [
           "wss://fileverse-signaling-server-0529292ff51c.herokuapp.com",
@@ -424,9 +422,10 @@ class Collab extends PureComponent<Props, CollabState> {
        *
        */
       this.yMap.doc?.transact(() => {
+        console.log("TRANSAVTING ON YMAP");
         this.yMap.set(
           "elements",
-          Uint8Array.from(canvasReconciledElements as any),
+          JSON.parse(JSON.stringify(canvasReconciledElements)),
         );
       });
       this.initializeIdleDetector();
@@ -441,9 +440,19 @@ class Collab extends PureComponent<Props, CollabState> {
        * Whenever there is a update on ydoc save elements to gun
        *
        */
-      this.yMap.doc?.on("update", (data) => {
-        console.log({ UPDATE_FROM_YDOC: data });
+      this.yMap.doc?.on("update", async () => {
+        console.log("SAVE UPDATES TO GUN");
         // saveCanvasElementsToGun();
+        const node = instantiateGun()
+          .user()
+          .auth(this.decryptionKey)
+          .get(`${this.contractAddress}/document/content/${this.canvasId}`);
+        const elements = this.excalidrawAPI.getSceneElementsIncludingDeleted();
+        const data = {
+          elements,
+        };
+        const encryptedData = await Sea.encrypt(data, this.decryptionKey);
+        node.put(encryptedData);
       });
       /**
        * Listen for cursor updates and update scene
@@ -589,30 +598,22 @@ class Collab extends PureComponent<Props, CollabState> {
     elements: readonly ExcalidrawElement[],
     appState: AppState,
   ) => {
-    // if (
-    //   getSceneVersion(elements) >
-    //   this.getLastBroadcastedOrReceivedSceneVersion()
-    // ) {
-    // this.lastBroadcastedOrReceivedSceneVersion = getSceneVersion(elements);
-    // this.queueBroadcastAllElements();
-    console.log("syncing elements", elements);
-    Y.transact(
-      this.yMap?.doc as Y.Doc,
-      () => {
-        console.log(elements, "elements abou ABOUT TO BE SAVED");
-        this.yMap.set("elements", JSON.parse(JSON.stringify(elements)));
-        console.log(appState, "appState ABOUT TO BE SAVED");
-        this.yMap.set("appState", JSON.parse(JSON.stringify(appState)));
-      },
-      this,
-    );
-    // for (const syncableElement of syncableElements) {
-    //   this.broadcastedElementVersions.set(
-    //     syncableElement.id,
-    //     syncableElement.version,
-    //   );
-    // }
-    // }
+    if (
+      getSceneVersion(elements) >
+      this.getLastBroadcastedOrReceivedSceneVersion()
+    ) {
+      this.lastBroadcastedOrReceivedSceneVersion = getSceneVersion(elements);
+
+      Y.transact(
+        this.yMap?.doc as Y.Doc,
+        () => {
+          console.log("MAKING TRANSACTION ON YDOC DUE TO CHANGE IN CANVAS");
+          this.yMap.set("elements", JSON.parse(JSON.stringify(elements)));
+          this.yMap.set("appState", JSON.parse(JSON.stringify(appState)));
+        },
+        this,
+      );
+    }
   };
 
   syncElements = (

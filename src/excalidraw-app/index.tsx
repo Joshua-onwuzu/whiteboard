@@ -148,16 +148,13 @@ const initializeScene = async (opts: {
       });
     }),
     new Promise((resolve) => {
-      setTimeout(() => resolve(null), 2000);
+      setTimeout(() => resolve(null), 10000);
     }),
   ]);
-
-  console.log(scene, "scene from indexDB");
   //@ts-ignore
   const data = restore(scene || null, null, null, {
     repairBindings: true,
   });
-  console.log(data, "restored APPSTATE");
   if (opts.collabAPI && opts.excalidrawAPI) {
     await opts.collabAPI.startCollaboration();
   }
