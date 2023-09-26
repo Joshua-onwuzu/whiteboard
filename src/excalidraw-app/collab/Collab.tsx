@@ -131,6 +131,8 @@ class Collab extends PureComponent<Props, CollabState> {
   decryptionKey: ISEAPair;
   contractAddress: string;
   isNewCollaborating: boolean;
+  webrtcProvider: WebrtcProvider | null;
+  searchParams: URLSearchParams;
 
   private socketInitializationTimer?: number;
   private lastBroadcastedOrReceivedSceneVersion: number = -1;
@@ -148,6 +150,8 @@ class Collab extends PureComponent<Props, CollabState> {
     this.contractAddress = props.contractAddress;
     this.isNewCollaborating = props.isNewCollaborating;
     this.portal = new Portal(this);
+    this.webrtcProvider = null;
+    this.searchParams = new URLSearchParams();
 
     this.fileManager = new FileManager({
       getFiles: async (fileIds) => {
@@ -241,47 +245,22 @@ class Collab extends PureComponent<Props, CollabState> {
     appJotaiStore.set(isCollaboratingAtom, isCollaborating);
   };
   stopCollaboration = (keepRemoteState = true) => {
-    // this.queueBroadcastAllElements.cancel();
-    // this.queueSaveToFirebase.cancel();
-    // this.loadImageFiles.cancel();
-
-    // this.saveCollabRoomToFirebase(
-    //   getSyncableElements(
-    //     this.excalidrawAPI.getSceneElementsIncludingDeleted(),
-    //   ),
-    // );
-
-    // if (this.portal.socket && this.fallbackInitializationHandler) {
-    //   this.portal.socket.off(
-    //     "connect_error",
-    //     this.fallbackInitializationHandler,
-    //   );
-    // }
-
-    if (window.confirm(t("alerts.collabStopOverridePrompt"))) {
-      // hack to ensure that we prefer we disregard any new browser state
-      // that could have been saved in other tabs while we were collaborating
-      resetBrowserStateVersions();
-
-      window.history.pushState({}, APP_NAME, window.location.origin);
-      // this.destroySocketClient();
-
-      // LocalData.fileStorage.reset();
-
-      // const elements = this.excalidrawAPI
-      //   .getSceneElementsIncludingDeleted()
-      //   .map((element) => {
-      //     if (isImageElement(element) && element.status === "saved") {
-      //       return newElementWith(element, { status: "pending" });
-      //     }
-      //     return element;
-      //   });
-
-      // this.excalidrawAPI.updateScene({
-      //   elements,
-      //   commitToHistory: false,
-      // });
+    this.saveCanvasStateOnGun();
+    resetBrowserStateVersions();
+    window.history.pushState({}, "", `${location.origin}${location.hash}`);
+    this.lastBroadcastedOrReceivedSceneVersion = -1;
+    if (this.webrtcProvider) {
+      this.webrtcProvider.disconnect();
+      this.webrtcProvider.destroy();
     }
+    this.setIsCollaborating(false);
+    this.setState({
+      activeRoomLink: "",
+    });
+    this.collaborators = new Map();
+    this.excalidrawAPI.updateScene({
+      collaborators: this.collaborators,
+    });
   };
 
   private fetchImageFilesFromFirebase = async (opts: {
@@ -371,7 +350,7 @@ class Collab extends PureComponent<Props, CollabState> {
      * when there is a change in ydoc type - update scene
      *
      */
-
+    console.log(window.location, "<<---");
     this.yMap.observe((event: any) => {
       if (event.transaction.origin !== this) {
         console.log("CHANGE IS DETECTED IN TYPE AND ITS EXTERNAL");
@@ -384,91 +363,7 @@ class Collab extends PureComponent<Props, CollabState> {
       }
     });
     if (this.isNewCollaborating) {
-      console.log("I AM ABOUT TO INSTANTIATE RTC ");
-      new WebrtcProvider(this.canvasId, this.yMap?.doc as Y.Doc, {
-        signaling: [
-          "wss://fileverse-signaling-server-0529292ff51c.herokuapp.com",
-        ],
-      });
-      /**
-       * if not username create username
-       *
-       */
-      if (!this.state.username) {
-        import("@excalidraw/random-username").then(({ getRandomUsername }) => {
-          const username = getRandomUsername();
-          this.onUsernameChange(username);
-        });
-      }
-      /**
-       *  if no roomID and no roomKey - create an append to url
-       *
-       */
-      /**
-       *
-       * pick save items from on and reconcile with current scene
-       *
-       */
-
-      const savedElements = await this.getSavedCanvasElementsFromGun({
-        decryptionKey: this.decryptionKey,
-        contractAddress: this.contractAddress,
-        canvasId: this.canvasId,
-      });
-      const canvasReconciledElements = this.reconcileElements(savedElements);
-
-      /**
-       * Apply the reconciled elements on ydoc
-       *
-       */
-      this.yMap.doc?.transact(() => {
-        console.log("TRANSAVTING ON YMAP");
-        this.yMap.set(
-          "elements",
-          JSON.parse(JSON.stringify(canvasReconciledElements)),
-        );
-      });
-      this.initializeIdleDetector();
-      this.setState({
-        activeRoomLink: window.location.href,
-      });
-      this.setLastBroadcastedOrReceivedSceneVersion(
-        getSceneVersion(canvasReconciledElements),
-      );
-
-      /**
-       * Whenever there is a update on ydoc save elements to gun
-       *
-       */
-      this.yMap.doc?.on("update", async () => {
-        console.log("SAVE UPDATES TO GUN");
-        // saveCanvasElementsToGun();
-        const node = instantiateGun()
-          .user()
-          .auth(this.decryptionKey)
-          .get(`${this.contractAddress}/document/content/${this.canvasId}`);
-        const elements = this.excalidrawAPI.getSceneElementsIncludingDeleted();
-        const data = {
-          elements,
-        };
-        const encryptedData = await Sea.encrypt(data, this.decryptionKey);
-        node.put(encryptedData);
-      });
-      /**
-       * Listen for cursor updates and update scene
-       *
-       */
-      // this.listenForCursorUpdate(decryptionKey, contractAddress, canvasId);
-      // const onIdleStatus = (decryptedData: any) => {
-      //   const { userState, socketId, username } = decryptedData.payload;
-      //   const collaborators = new Map(this.collaborators);
-      //   const user = collaborators.get(socketId) || {}!;
-      //   user.userState = userState;
-      //   user.username = username;
-      //   this.excalidrawAPI.updateScene({
-      //     collaborators,
-      //   });
-      // };
+      this.activateCollaboration();
     }
   };
 
@@ -615,6 +510,109 @@ class Collab extends PureComponent<Props, CollabState> {
       );
     }
   };
+  saveCanvasStateOnGun = async () => {
+    const node = instantiateGun()
+      .user()
+      .auth(this.decryptionKey)
+      .get(`${this.contractAddress}/document/content/${this.canvasId}`);
+    const elements = this.excalidrawAPI.getSceneElementsIncludingDeleted();
+    const data = {
+      elements,
+    };
+    const encryptedData = await Sea.encrypt(data, this.decryptionKey);
+    node.put(encryptedData);
+  };
+
+  activateCollaboration = async () => {
+    window.history.pushState(
+      {},
+      "",
+      `${location.origin}${location.hash}&collab=true`,
+    );
+
+    console.log("I AM ABOUT TO INSTANTIATE RTC ");
+    const provider = new WebrtcProvider(
+      this.canvasId,
+      this.yMap?.doc as Y.Doc,
+      {
+        signaling: [
+          "wss://fileverse-signaling-server-0529292ff51c.herokuapp.com",
+        ],
+      },
+    );
+    this.webrtcProvider = provider;
+    /**
+     * if not username create username
+     *
+     */
+    if (!this.state.username) {
+      import("@excalidraw/random-username").then(({ getRandomUsername }) => {
+        const username = getRandomUsername();
+        this.onUsernameChange(username);
+      });
+    }
+    /**
+     *  if no roomID and no roomKey - create an append to url
+     *
+     */
+    /**
+     *
+     * pick save items from on and reconcile with current scene
+     *
+     */
+
+    const savedElements = await this.getSavedCanvasElementsFromGun({
+      decryptionKey: this.decryptionKey,
+      contractAddress: this.contractAddress,
+      canvasId: this.canvasId,
+    });
+    const canvasReconciledElements = this.reconcileElements(savedElements);
+
+    /**
+     * Apply the reconciled elements on ydoc
+     *
+     */
+    this.yMap.doc?.transact(() => {
+      console.log("TRANSAVTING ON YMAP");
+      this.yMap.set(
+        "elements",
+        JSON.parse(JSON.stringify(canvasReconciledElements)),
+      );
+    });
+    this.initializeIdleDetector();
+    this.setState({
+      activeRoomLink: window.location.href,
+    });
+    this.setLastBroadcastedOrReceivedSceneVersion(
+      getSceneVersion(canvasReconciledElements),
+    );
+
+    /**
+     * Whenever there is a update on ydoc save elements to gun
+     *
+     */
+    this.yMap.doc?.on("update", async () => {
+      console.log("SAVE UPDATES TO GUN");
+      this.saveCanvasStateOnGun();
+    });
+    /**
+     * Listen for cursor updates and update scene
+     *
+     */
+    // this.listenForCursorUpdate(decryptionKey, contractAddress, canvasId);
+    // const onIdleStatus = (decryptedData: any) => {
+    //   const { userState, socketId, username } = decryptedData.payload;
+    //   const collaborators = new Map(this.collaborators);
+    //   const user = collaborators.get(socketId) || {}!;
+    //   user.userState = userState;
+    //   user.username = username;
+    //   this.excalidrawAPI.updateScene({
+    //     collaborators,
+    //   });
+    // };
+
+    this.setIsCollaborating(true);
+  };
 
   syncElements = (
     elements: readonly ExcalidrawElement[],
@@ -649,7 +647,7 @@ class Collab extends PureComponent<Props, CollabState> {
             activeRoomLink={activeRoomLink}
             username={username}
             onUsernameChange={this.onUsernameChange}
-            onRoomCreate={() => this.startCollaboration()}
+            onRoomCreate={() => this.activateCollaboration()}
             onRoomDestroy={this.stopCollaboration}
             setErrorMessage={(errorMessage) => {
               this.setState({ errorMessage });
