@@ -247,7 +247,16 @@ class Collab extends PureComponent<Props, CollabState> {
   stopCollaboration = (keepRemoteState = true) => {
     this.saveCanvasStateOnGun();
     resetBrowserStateVersions();
-    window.history.pushState({}, "", `${location.origin}${location.hash}`);
+    const link = window.location.href;
+    const formatedLink = link.replace("/#", "");
+    const url = new URL(formatedLink);
+    const urlSearchParams = url.searchParams;
+    urlSearchParams.delete("collab");
+    window.history.pushState(
+      {},
+      APP_NAME,
+      `${url.origin}/#${url.pathname}${url.search}`,
+    );
     this.lastBroadcastedOrReceivedSceneVersion = -1;
 
     this.setIsCollaborating(false);
@@ -546,7 +555,7 @@ class Collab extends PureComponent<Props, CollabState> {
   activateCollaboration = async () => {
     window.history.pushState(
       {},
-      "",
+      "JOSHUA",
       `${location.origin}${location.hash}&collab=true`,
     );
 
@@ -592,6 +601,9 @@ class Collab extends PureComponent<Props, CollabState> {
           { pointer, button, username, selectedElementIds },
           provider.awareness.clientID === data?.clientId,
         );
+        if (clientId === this.webrtcProvider?.awareness.clientID) {
+          return;
+        }
         const userId = clientId;
         const collaborators = new Map(this.collaborators);
         const user = collaborators.get(userId) || {}!;
