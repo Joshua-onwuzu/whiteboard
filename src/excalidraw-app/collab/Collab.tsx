@@ -483,13 +483,13 @@ class Collab extends PureComponent<Props, CollabState> {
     pointer: SocketUpdateDataSource["MOUSE_LOCATION"]["payload"]["pointer"];
     button: SocketUpdateDataSource["MOUSE_LOCATION"]["payload"]["button"];
   }) => {
-    if (this.isCollaborating()) {
+    if (this.isCollaborating() && this.webrtcProvider) {
       console.log("USER IS COLLABORATING");
       const clientId = this.webrtcProvider?.awareness.clientID;
-      const node = instantiateGun()
-        .user()
-        .auth(this.decryptionKey)
-        .get(`${this.contractAddress}/${this.canvasId}/mouse`);
+      // const node = instantiateGun()
+      //   .user()
+      //   .auth(this.decryptionKey)
+      //   .get(`${this.contractAddress}/${this.canvasId}/mouse`);
       const data = {
         clientId,
         pointer: payload.pointer,
@@ -497,7 +497,8 @@ class Collab extends PureComponent<Props, CollabState> {
         selectedElementIds: this.excalidrawAPI.getAppState().selectedElementIds,
         username: this.state.username,
       };
-      node.get(clientId).put({ state: JSON.stringify(data) });
+      // node.get(clientId).put({ state: JSON.stringify(data) });
+      this.webrtcProvider.awareness.setLocalState(data);
     }
   };
 
@@ -555,11 +556,9 @@ class Collab extends PureComponent<Props, CollabState> {
   activateCollaboration = async () => {
     window.history.pushState(
       {},
-      "JOSHUA",
+      "",
       `${location.origin}${location.hash}&collab=true`,
     );
-
-    console.log("I AM ABOUT TO INSTANTIATE RTC ");
     const provider = new WebrtcProvider(
       this.canvasId,
       this.yMap?.doc as Y.Doc,
@@ -571,52 +570,47 @@ class Collab extends PureComponent<Props, CollabState> {
     );
     this.webrtcProvider = provider;
     provider.awareness.on("update", () => {
-      this.setCollaborators(provider.awareness.states);
+      const x = new Map(provider.awareness.states);
+      const state = x.has(provider.awareness.clientID);
+      if (state) {
+        x.delete(provider.awareness.clientID);
+      }
+      this.setCollaborators(x);
       this.excalidrawAPI.updateScene({
-        collaborators: provider.awareness.states as any,
+        collaborators: x as any,
       });
     });
 
-    const node = instantiateGun()
-      .user()
-      .auth(this.decryptionKey)
-      .get(`${this.contractAddress}/${this.canvasId}/mouse`);
-    node
-      .map((data: any) =>
-        data?.state.clientId !== this.webrtcProvider?.awareness.clientID
-          ? data?.state
-          : undefined,
-      )
-      .on((data: any) => {
-        console.log(
-          "DATA COMING FROM MOUSE NODE",
-          data,
-          this.webrtcProvider?.awareness.clientID,
-        );
-        const { pointer, button, username, selectedElementIds, clientId } =
-          JSON.parse(data);
-        console.log(
-          "Hitting this pointer for ",
-          data,
-          { pointer, button, username, selectedElementIds },
-          provider.awareness.clientID === data?.clientId,
-        );
-        if (clientId === this.webrtcProvider?.awareness.clientID) {
-          return;
-        }
-        const userId = clientId;
-        const collaborators = new Map(this.collaborators);
-        const user = collaborators.get(userId) || {}!;
-        user.pointer = pointer;
-        user.button = button;
-        user.selectedElementIds = selectedElementIds;
-        user.username = username;
-        collaborators.set(userId, user);
-        console.log("SETTING COLLABORATORS", collaborators);
-        this.excalidrawAPI.updateScene({
-          collaborators,
-        });
-      });
+    // const node = instantiateGun()
+    //   .user()
+    //   .auth(this.decryptionKey)
+    //   .get(`${this.contractAddress}/${this.canvasId}/mouse`);
+    // node
+    //   .map((data: any) =>
+    //     data?.state.clientId !== this.webrtcProvider?.awareness.clientID
+    //       ? data?.state
+    //       : undefined,
+    //   )
+    //   .on((data: any) => {
+    //     const { pointer, button, username, selectedElementIds, clientId } =
+    //       JSON.parse(data);
+    // if (clientId === this.webrtcProvider?.awareness.clientID) {
+    //   return;
+    // }
+    // const userId = clientId;
+    // const collaborators = new Map(this.collaborators);
+    // const user = collaborators.get(userId) || {}!;
+    // user.pointer = pointer;
+    // user.button = button;
+    // user.selectedElementIds = selectedElementIds;
+    // user.username = username;
+    // collaborators.set(userId, user);
+    //     console.log("SETTING COLLABORATORS", collaborators);
+    //     this.excalidrawAPI.updateScene({
+    //       collaborators,
+    //     });
+    //   });
+
     /**
      * if not username create username
      *

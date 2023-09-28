@@ -254,7 +254,6 @@ const ExcalidrawWrapper = () => {
       provider,
       canvasId,
     }).then((data) => {
-      console.log(data, "DATA ABOUT TO BE INJECTED");
       initialStatePromiseRef.current.promise.resolve(data);
     });
 
@@ -275,6 +274,14 @@ const ExcalidrawWrapper = () => {
           excalidrawAPI,
           provider,
           canvasId,
+        }).then((data) => {
+          if (data) {
+            excalidrawAPI.updateScene({
+              ...data,
+              ...restore(data, null, null, { repairBindings: true }),
+              commitToHistory: true,
+            });
+          }
         });
       }
     };
@@ -292,7 +299,6 @@ const ExcalidrawWrapper = () => {
         !document.hidden &&
         ((collabAPI && !collabAPI.isCollaborating()) || isCollabDisabled)
       ) {
-        console.log("HITTING THE BLUR API");
         // don't sync if local state is newer or identical to browser state
         if (isBrowserStorageStateNewer(STORAGE_KEYS.VERSION_DATA_STATE)) {
           const localDataState = importFromLocalStorage();
@@ -344,10 +350,6 @@ const ExcalidrawWrapper = () => {
       }
     }, SYNC_BROWSER_TABS_TIMEOUT);
 
-    const onUnload = () => {
-      LocalData.flushSave();
-    };
-
     const visibilityChange = (event: FocusEvent | Event) => {
       if (
         event.type === EVENT.VISIBILITY_CHANGE ||
@@ -358,13 +360,11 @@ const ExcalidrawWrapper = () => {
     };
 
     window.addEventListener(EVENT.HASHCHANGE, onHashChange, false);
-    window.addEventListener(EVENT.UNLOAD, onUnload, false);
     window.addEventListener(EVENT.BLUR, visibilityChange, false);
     document.addEventListener(EVENT.VISIBILITY_CHANGE, visibilityChange, false);
     window.addEventListener(EVENT.FOCUS, visibilityChange, false);
     return () => {
       window.removeEventListener(EVENT.HASHCHANGE, onHashChange, false);
-      window.removeEventListener(EVENT.UNLOAD, onUnload, false);
       window.removeEventListener(EVENT.BLUR, visibilityChange, false);
       window.removeEventListener(EVENT.FOCUS, visibilityChange, false);
       document.removeEventListener(
