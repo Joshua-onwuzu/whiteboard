@@ -1977,7 +1977,6 @@ class App extends React.Component<AppProps, AppState> {
       );
     }
     this.history.record(this.state, this.scene.getElementsIncludingDeleted());
-
     // Do not notify consumers if we're still loading the scene. Among other
     // potential issues, this fixes a case where the tab isn't focused during
     // init, which would trigger onChange with empty elements, which would then

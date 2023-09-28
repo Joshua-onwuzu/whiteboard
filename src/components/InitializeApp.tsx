@@ -11,7 +11,7 @@ interface Props {
 }
 
 export const InitializeApp = (props: Props) => {
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const updateLang = async () => {
@@ -22,6 +22,5 @@ export const InitializeApp = (props: Props) => {
       languages.find((lang) => lang.code === props.langCode) || defaultLang;
     updateLang();
   }, [props.langCode]);
-
   return loading ? <LoadingMessage theme={props.theme} /> : props.children;
 };
