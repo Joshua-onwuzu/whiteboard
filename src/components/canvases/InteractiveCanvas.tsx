@@ -79,7 +79,6 @@ const InteractiveCanvas = (props: InteractiveCanvasProps) => {
     const pointerUserStates: { [id: string]: string } = {};
 
     props.appState.collaborators.forEach((user, socketId) => {
-      console.log(user, socketId, "VERIGY THIS SHIT");
       if (user.selectedElementIds) {
         for (const id of Object.keys(user.selectedElementIds)) {
           if (!(id in remoteSelectedElementIds)) {

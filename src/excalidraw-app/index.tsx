@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import polyfill from "../polyfill";
 import LanguageDetector from "i18next-browser-languagedetector";
 import { useEffect, useRef, useState } from "react";
@@ -13,7 +14,6 @@ import {
   TITLE_TIMEOUT,
   VERSION_TIMEOUT,
 } from "../constants";
-import { loadFromBlob } from "../data/blob";
 import {
   ExcalidrawElement,
   FileId,
@@ -45,11 +45,7 @@ import {
   resolvablePromise,
   isRunningInIframe,
 } from "../utils";
-import {
-  FIREBASE_STORAGE_PREFIXES,
-  STORAGE_KEYS,
-  SYNC_BROWSER_TABS_TIMEOUT,
-} from "./app_constants";
+import { STORAGE_KEYS, SYNC_BROWSER_TABS_TIMEOUT } from "./app_constants";
 import Collab, {
   CollabAPI,
   collabAPIAtom,
@@ -57,30 +53,23 @@ import Collab, {
   isCollaboratingAtom,
   isOfflineAtom,
 } from "./collab/Collab";
-import {
-  exportToBackend,
-  getCollaborationLinkData,
-  isCollaborationLink,
-} from "./data";
+import { exportToBackend, isCollaborationLink } from "./data";
 import {
   getLibraryItemsFromStorage,
   importFromLocalStorage,
   importUsernameFromLocalStorage,
 } from "./data/localStorage";
 import CustomStats from "./CustomStats";
-import { restore, restoreAppState, RestoredDataState } from "../data/restore";
+import { restore } from "../data/restore";
 import {
   ExportToExcalidrawPlus,
   exportToExcalidrawPlus,
 } from "./components/ExportToExcalidrawPlus";
 import { updateStaleImageStatuses } from "./data/FileManager";
-import { newElementWith } from "../element/mutateElement";
 import { isInitializedImageElement } from "../element/typeChecks";
-import { loadFilesFromFirebase } from "./data/firebase";
 import { LocalData } from "./data/LocalData";
 import { isBrowserStorageStateNewer } from "./data/tabSync";
 import clsx from "clsx";
-import { reconcileElements } from "./collab/reconciliation";
 import { parseLibraryTokensFromUrl, useHandleLibrary } from "../data/library";
 import { AppMainMenu } from "./components/AppMainMenu";
 import { AppWelcomeScreen } from "./components/AppWelcomeScreen";
@@ -90,11 +79,8 @@ import { useAtomWithInitialValue } from "../jotai";
 import { appJotaiStore } from "./app-jotai";
 
 import "./index.scss";
-import { ResolutionType } from "../utility-types";
 import { ShareableLinkDialog } from "../components/ShareableLinkDialog";
-import { openConfirmModal } from "../components/OverwriteConfirm/OverwriteConfirmState";
 import { OverwriteConfirmDialog } from "../components/OverwriteConfirm/OverwriteConfirm";
-import Trans from "../components/Trans";
 import { IndexeddbPersistence } from "y-indexeddb";
 import { ISEAPair } from "gun";
 import { Base64 } from "base64-string";
@@ -121,19 +107,6 @@ const languageDetector = new LanguageDetector();
 languageDetector.init({
   languageUtils: {},
 });
-
-const shareableLinkConfirmDialog = {
-  title: t("overwriteConfirm.modal.shareableLink.title"),
-  description: (
-    <Trans
-      i18nKey="overwriteConfirm.modal.shareableLink.description"
-      bold={(text) => <strong>{text}</strong>}
-      br={() => <br />}
-    />
-  ),
-  actionLabel: t("overwriteConfirm.modal.shareableLink.button"),
-  color: "danger",
-} as const;
 
 const initializeScene = async (opts: {
   collabAPI: CollabAPI | null;
@@ -308,7 +281,6 @@ const ExcalidrawWrapper = () => {
             langCode = langCode[0];
           }
           setLangCode(langCode);
-          console.log(localDataState);
           excalidrawAPI.updateScene({
             ...localDataState,
           });
@@ -421,9 +393,7 @@ const ExcalidrawWrapper = () => {
     appState: AppState,
     files: BinaryFiles,
   ) => {
-    console.log(collabAPI, "collabAPI");
     if (collabAPI) {
-      console.log("sync these elements bruv!");
       collabAPI.syncElements(elements, appState);
     }
 

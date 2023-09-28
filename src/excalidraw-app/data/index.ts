@@ -1,12 +1,6 @@
-import { compressData, decompressData } from "../../data/encode";
-import {
-  decryptData,
-  generateEncryptionKey,
-  IV_LENGTH_BYTES,
-} from "../../data/encryption";
+import { compressData } from "../../data/encode";
+import { generateEncryptionKey } from "../../data/encryption";
 import { serializeAsJSON } from "../../data/json";
-import { restore } from "../../data/restore";
-import { ImportedDataState } from "../../data/types";
 import { isInvisiblySmallElement } from "../../element/sizeHelpers";
 import { isInitializedImageElement } from "../../element/typeChecks";
 import { ExcalidrawElement, FileId } from "../../element/types";
@@ -47,7 +41,6 @@ export const getSyncableElements = (elements: readonly ExcalidrawElement[]) =>
     isSyncableElement(element),
   ) as SyncableExcalidrawElement[];
 
-const BACKEND_V2_GET = import.meta.env.VITE_APP_BACKEND_V2_GET_URL;
 const BACKEND_V2_POST = import.meta.env.VITE_APP_BACKEND_V2_POST_URL;
 
 const generateRoomId = async () => {
@@ -173,161 +166,6 @@ export const getCollaborationLink = (data: {
  * Decodes shareLink data using the legacy buffer format.
  * @deprecated
  */
-const legacy_decodeFromBackend = async ({
-  buffer,
-  decryptionKey,
-}: {
-  buffer: ArrayBuffer;
-  decryptionKey: string;
-}) => {
-  let decrypted: ArrayBuffer;
-
-  try {
-    // Buffer should contain both the IV (fixed length) and encrypted data
-    const iv = buffer.slice(0, IV_LENGTH_BYTES);
-    const encrypted = buffer.slice(IV_LENGTH_BYTES, buffer.byteLength);
-    decrypted = await decryptData(new Uint8Array(iv), encrypted, decryptionKey);
-  } catch (error: any) {
-    // Fixed IV (old format, backward compatibility)
-    const fixedIv = new Uint8Array(IV_LENGTH_BYTES);
-    decrypted = await decryptData(fixedIv, buffer, decryptionKey);
-  }
-
-  // We need to convert the decrypted array buffer to a string
-  const string = new window.TextDecoder("utf-8").decode(
-    new Uint8Array(decrypted),
-  );
-  const data: ImportedDataState = JSON.parse(string);
-
-  return {
-    elements: data.elements || null,
-    appState: data.appState || null,
-  };
-};
-
-const importFromBackend = async (
-  id: string,
-  decryptionKey: string,
-): Promise<ImportedDataState> => {
-  try {
-    const response = await fetch(`${BACKEND_V2_GET}${id}`);
-
-    if (!response.ok) {
-      window.alert(t("alerts.importBackendFailed"));
-      return {};
-    }
-    const buffer = await response.arrayBuffer();
-
-    try {
-      const { data: decodedBuffer } = await decompressData(
-        new Uint8Array(buffer),
-        {
-          decryptionKey,
-        },
-      );
-      const data: ImportedDataState = JSON.parse(
-        new TextDecoder().decode(decodedBuffer),
-      );
-
-      return {
-        elements: data.elements || null,
-        appState: data.appState || null,
-      };
-    } catch (error: any) {
-      console.warn(
-        "error when decoding shareLink data using the new format:",
-        error,
-      );
-      return legacy_decodeFromBackend({ buffer, decryptionKey });
-    }
-  } catch (error: any) {
-    window.alert(t("alerts.importBackendFailed"));
-    console.error(error);
-    return {};
-  }
-};
-// const importFromGun = async ({
-//   decryptionKey,
-//   contractAddress,
-//   canvasId,
-// }: {
-//   decryptionKey: ISEAPair;
-//   contractAddress: string;
-//   canvasId: string;
-// }): Promise<ImportedDataState> => {
-//   const content = await Promise.race([
-//     new Promise((resolve) => {
-//       const contentNode = instantiateGun()
-//         .user()
-//         .auth(decryptionKey as ISEAPair)
-//         .get(`${contractAddress}/document/content/${docId}`);
-//       contentNode.on((doc: ImportedDataState) => {
-//         resolve(doc);
-//         contentNode.off();
-//       });
-//     }),
-//     new Promise((resolve) =>
-//       setTimeout(
-//         () =>
-//           resolve({
-//             element: null,
-//             appState: null,
-//           }),
-//         2000,
-//       ),
-//     ),
-//   ]);
-//   return content as ImportedDataState;
-// };
-
-// export const loadScene = async (
-//   canvasId: string | null,
-//   decryptionKey: string | null,
-//   // Supply local state even if importing from backend to ensure we restore
-//   // localStorage user settings which we do not persist on server.
-//   // Non-optional so we don't forget to pass it even if `undefined`.
-//   localDataState: ImportedDataState | undefined | null,
-//   contractAddress: string,
-// ) => {
-//   let data;
-//   if (canvasId != null && decryptionKey != null) {
-//     // the private key is used to decrypt the content from the server, take
-//     // extra care not to leak it
-//     /**
-//      *
-//      *
-//      * AT THIS POINT GET WHITEBOARD CONTENT FROM GUN
-//      * CREATE THE FUNCTIONALITY IN importFromBackend
-//      *
-//      *
-//      */
-//     data = restore(
-//       await importFromGun({
-//         canvasId,
-//         decryptionKey,
-//         contractAddress,
-//       }),
-//       localDataState?.appState,
-//       localDataState?.elements,
-//       { repairBindings: true, refreshDimensions: false },
-//     );
-//   } else {
-//     data = restore(localDataState || null, null, null, {
-//       repairBindings: true,
-//     });
-//   }
-
-//   return {
-//     elements: data.elements,
-//     appState: data.appState,
-//     // note: this will always be empty because we're not storing files
-//     // in the scene database/localStorage, and instead fetch them async
-//     // from a different database
-
-//     // files: data?.files,
-//     commitToHistory: false,
-//   };
-// };
 
 type ExportToBackendResult =
   | { url: null; errorMessage: string }

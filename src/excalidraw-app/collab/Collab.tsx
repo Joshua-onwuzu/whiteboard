@@ -3,7 +3,6 @@ import { PureComponent } from "react";
 import { AppState, ExcalidrawImperativeAPI } from "../../types";
 import { ErrorDialog } from "../../components/ErrorDialog";
 import { APP_NAME, ENV, EVENT } from "../../constants";
-import { ImportedDataState } from "../../data/types";
 import * as Y from "yjs";
 import {
   ExcalidrawElement,
@@ -14,68 +13,34 @@ import {
   restoreElements,
 } from "../../packages/excalidraw/index";
 import { Collaborator, Gesture } from "../../types";
-import {
-  preventUnload,
-  resolvablePromise,
-  withBatchedUpdates,
-} from "../../utils";
 import Gun, { ISEAPair } from "gun";
 import Sea from "gun/sea";
 import {
   CURSOR_SYNC_TIMEOUT,
   FILE_UPLOAD_MAX_BYTES,
   FIREBASE_STORAGE_PREFIXES,
-  INITIAL_SCENE_UPDATE_TIMEOUT,
-  LOAD_IMAGES_TIMEOUT,
-  WS_SCENE_EVENT_TYPES,
-  SYNC_FULL_SCENE_INTERVAL_MS,
 } from "../app_constants";
-import {
-  generateCollaborationLinkData,
-  getCollaborationLink,
-  getCollabServer,
-  getSyncableElements,
-  SocketUpdateDataSource,
-  SyncableExcalidrawElement,
-} from "../data";
-import {
-  isSavedToFirebase,
-  loadFilesFromFirebase,
-  loadFromFirebase,
-  saveFilesToFirebase,
-  saveToFirebase,
-} from "../data/firebase";
+import { SocketUpdateDataSource } from "../data";
+import { loadFilesFromFirebase, saveFilesToFirebase } from "../data/firebase";
 import {
   importUsernameFromLocalStorage,
   saveUsernameToLocalStorage,
 } from "../data/localStorage";
 import Portal from "./Portal";
 import RoomDialog from "./RoomDialog";
-import { t } from "../../i18n";
 import { UserIdleState } from "../../types";
 import { IDLE_THRESHOLD, ACTIVE_THRESHOLD } from "../../constants";
-import {
-  encodeFilesForUpload,
-  FileManager,
-  updateStaleImageStatuses,
-} from "../data/FileManager";
+import { encodeFilesForUpload, FileManager } from "../data/FileManager";
 import { AbortError } from "../../errors";
-import {
-  isImageElement,
-  isInitializedImageElement,
-} from "../../element/typeChecks";
-import { newElementWith } from "../../element/mutateElement";
+import { isInitializedImageElement } from "../../element/typeChecks";
 import {
   ReconciledElements,
   reconcileElements as _reconcileElements,
 } from "./reconciliation";
-import { decryptData } from "../../data/encryption";
 import { resetBrowserStateVersions } from "../data/tabSync";
-import { LocalData } from "../data/LocalData";
 import { atom, useAtom } from "jotai";
 import { appJotaiStore } from "../app-jotai";
 import { WebrtcProvider } from "y-webrtc";
-import { fromUint8Array } from "js-base64";
 
 export const collabAPIAtom = atom<CollabAPI | null>(null);
 export const collabDialogShownAtom = atom(false);
@@ -201,7 +166,6 @@ class Collab extends PureComponent<Props, CollabState> {
       stopCollaboration: this.stopCollaboration,
       setUsername: this.setUsername,
     };
-    console.log("AT THIS POINT IT SHOULD SET ATOM");
     appJotaiStore.set(collabAPIAtom, collabAPI);
 
     if (import.meta.env.MODE === ENV.TEST || import.meta.env.DEV) {
@@ -335,42 +299,13 @@ class Collab extends PureComponent<Props, CollabState> {
     return elements as readonly ExcalidrawElement[];
   };
 
-  // private listenForCursorUpdate = (
-  //   decryptionKey,
-  //   contractAddress,
-  //   canvasId,
-  // ) => {
-  //   const node = instantiateGun()
-  //     .user()
-  //     .auth(decryptionKey as ISEAPair)
-  //     .get(`${contractAddress}/document/cursor/${canvasId}`);
-
-  //   node.on((data: any) => {
-  //     const { pointer, button, username, selectedElementIds } = data;
-  //     const userId = data.userId;
-
-  //     const collaborators = new Map(this.collaborators);
-  //     const user = collaborators.get(userId) || {}!;
-  //     user.pointer = pointer;
-  //     user.button = button;
-  //     user.selectedElementIds = selectedElementIds;
-  //     user.username = username;
-  //     collaborators.set(userId, user);
-  //     this.excalidrawAPI.updateScene({
-  //       collaborators,
-  //     });
-  //   });
-  // };
-
   startCollaboration = async () => {
     /**
      * when there is a change in ydoc type - update scene
      *
      */
-    console.log(window.location, "<<---");
     this.yMap.observe((event: any) => {
       if (event.transaction.origin !== this) {
-        console.log("CHANGE IS DETECTED IN TYPE AND ITS EXTERNAL");
         const el = this.yMap.toJSON()?.elements;
         const canvasReconciledElements = this.reconcileElements(el as any);
         this.excalidrawAPI.updateScene({
@@ -484,12 +419,7 @@ class Collab extends PureComponent<Props, CollabState> {
     button: SocketUpdateDataSource["MOUSE_LOCATION"]["payload"]["button"];
   }) => {
     if (this.isCollaborating() && this.webrtcProvider) {
-      console.log("USER IS COLLABORATING");
       const clientId = this.webrtcProvider?.awareness.clientID;
-      // const node = instantiateGun()
-      //   .user()
-      //   .auth(this.decryptionKey)
-      //   .get(`${this.contractAddress}/${this.canvasId}/mouse`);
       const data = {
         clientId,
         pointer: payload.pointer,
@@ -497,7 +427,6 @@ class Collab extends PureComponent<Props, CollabState> {
         selectedElementIds: this.excalidrawAPI.getAppState().selectedElementIds,
         username: this.state.username,
       };
-      // node.get(clientId).put({ state: JSON.stringify(data) });
       this.webrtcProvider.awareness.setLocalState(data);
     }
   };
@@ -532,7 +461,6 @@ class Collab extends PureComponent<Props, CollabState> {
       Y.transact(
         this.yMap?.doc as Y.Doc,
         () => {
-          console.log("MAKING TRANSACTION ON YDOC DUE TO CHANGE IN CANVAS");
           this.yMap.set("elements", JSON.parse(JSON.stringify(elements)));
           this.yMap.set("appState", JSON.parse(JSON.stringify(appState)));
         },
@@ -581,36 +509,6 @@ class Collab extends PureComponent<Props, CollabState> {
       });
     });
 
-    // const node = instantiateGun()
-    //   .user()
-    //   .auth(this.decryptionKey)
-    //   .get(`${this.contractAddress}/${this.canvasId}/mouse`);
-    // node
-    //   .map((data: any) =>
-    //     data?.state.clientId !== this.webrtcProvider?.awareness.clientID
-    //       ? data?.state
-    //       : undefined,
-    //   )
-    //   .on((data: any) => {
-    //     const { pointer, button, username, selectedElementIds, clientId } =
-    //       JSON.parse(data);
-    // if (clientId === this.webrtcProvider?.awareness.clientID) {
-    //   return;
-    // }
-    // const userId = clientId;
-    // const collaborators = new Map(this.collaborators);
-    // const user = collaborators.get(userId) || {}!;
-    // user.pointer = pointer;
-    // user.button = button;
-    // user.selectedElementIds = selectedElementIds;
-    // user.username = username;
-    // collaborators.set(userId, user);
-    //     console.log("SETTING COLLABORATORS", collaborators);
-    //     this.excalidrawAPI.updateScene({
-    //       collaborators,
-    //     });
-    //   });
-
     /**
      * if not username create username
      *
@@ -643,7 +541,6 @@ class Collab extends PureComponent<Props, CollabState> {
      *
      */
     this.yMap.doc?.transact(() => {
-      console.log("TRANSAVTING ON YMAP");
       this.yMap.set(
         "elements",
         JSON.parse(JSON.stringify(canvasReconciledElements)),
@@ -662,24 +559,12 @@ class Collab extends PureComponent<Props, CollabState> {
      *
      */
     this.yMap.doc?.on("update", async () => {
-      console.log("SAVE UPDATES TO GUN");
       this.saveCanvasStateOnGun();
     });
     /**
      * Listen for cursor updates and update scene
      *
      */
-    // this.listenForCursorUpdate(decryptionKey, contractAddress, canvasId);
-    // const onIdleStatus = (decryptedData: any) => {
-    //   const { userState, socketId, username } = decryptedData.payload;
-    //   const collaborators = new Map(this.collaborators);
-    //   const user = collaborators.get(socketId) || {}!;
-    //   user.userState = userState;
-    //   user.username = username;
-    //   this.excalidrawAPI.updateScene({
-    //     collaborators,
-    //   });
-    // };
 
     this.setIsCollaborating(true);
   };

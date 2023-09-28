@@ -1,24 +1,13 @@
-import {
-  isSyncableElement,
-  SocketUpdateData,
-  SocketUpdateDataSource,
-} from "../data";
+import { SocketUpdateData, SocketUpdateDataSource } from "../data";
 
 import { TCollabClass } from "./Collab";
 
 import { ExcalidrawElement } from "../../element/types";
-import {
-  WS_EVENTS,
-  FILE_UPLOAD_TIMEOUT,
-  WS_SCENE_EVENT_TYPES,
-} from "../app_constants";
+import { WS_EVENTS, FILE_UPLOAD_TIMEOUT } from "../app_constants";
 import { UserIdleState } from "../../types";
-import { trackEvent } from "../../analytics";
 import throttle from "lodash.throttle";
 import { newElementWith } from "../../element/mutateElement";
-import { BroadcastedExcalidrawElement } from "./reconciliation";
 import { encryptData } from "../../data/encryption";
-import { PRECEDING_ELEMENT_KEY } from "../../constants";
 
 class Portal {
   collab: TCollabClass;

@@ -21,7 +21,6 @@ export const UserList: React.FC<{
       collaborator,
     );
   });
-  console.log("BASE", uniqueCollaborators);
 
   const avatars =
     uniqueCollaborators.size > 0 &&
