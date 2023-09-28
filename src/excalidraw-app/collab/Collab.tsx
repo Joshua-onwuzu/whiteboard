@@ -208,9 +208,7 @@ class Collab extends PureComponent<Props, CollabState> {
   private setIsCollaborating = (isCollaborating: boolean) => {
     appJotaiStore.set(isCollaboratingAtom, isCollaborating);
   };
-  stopCollaboration = (keepRemoteState = true) => {
-    this.saveCanvasStateOnGun();
-    resetBrowserStateVersions();
+  private removeCollaborationUrl = () => {
     const link = window.location.href;
     const formatedLink = link.replace("/#", "");
     const url = new URL(formatedLink);
@@ -221,19 +219,17 @@ class Collab extends PureComponent<Props, CollabState> {
       APP_NAME,
       `${url.origin}/#${url.pathname}${url.search}`,
     );
+  };
+  stopCollaboration = (keepRemoteState = true) => {
+    this.saveCanvasStateOnGun();
+    resetBrowserStateVersions();
+    this.removeCollaborationUrl();
     this.lastBroadcastedOrReceivedSceneVersion = -1;
 
     this.setIsCollaborating(false);
     this.setState({
       activeRoomLink: "",
     });
-    instantiateGun()
-      .user()
-      .auth(this.decryptionKey)
-      .get(`${this.contractAddress}/${this.canvasId}/mouse`)
-      .get(this.webrtcProvider?.awareness.clientID)
-      .get(null);
-
     if (this.webrtcProvider) {
       this.webrtcProvider.disconnect();
       this.webrtcProvider.destroy();
@@ -298,12 +294,7 @@ class Collab extends PureComponent<Props, CollabState> {
     ]);
     return elements as readonly ExcalidrawElement[];
   };
-
-  startCollaboration = async () => {
-    /**
-     * when there is a change in ydoc type - update scene
-     *
-     */
+  private observeYMap = () => {
     this.yMap.observe((event: any) => {
       if (event.transaction.origin !== this) {
         const el = this.yMap.toJSON()?.elements;
@@ -314,6 +305,14 @@ class Collab extends PureComponent<Props, CollabState> {
         });
       }
     });
+  };
+
+  startCollaboration = async () => {
+    /**
+     * when there is a change in ydoc type - update scene
+     *
+     */
+    this.observeYMap();
     if (this.isNewCollaborating) {
       this.activateCollaboration();
     }
@@ -481,22 +480,15 @@ class Collab extends PureComponent<Props, CollabState> {
     node.put(encryptedData);
   };
 
-  activateCollaboration = async () => {
+  setCollaborationUrl = () => {
     window.history.pushState(
       {},
       "",
       `${location.origin}${location.hash}&collab=true`,
     );
-    const provider = new WebrtcProvider(
-      this.canvasId,
-      this.yMap?.doc as Y.Doc,
-      {
-        signaling: [
-          "wss://fileverse-signaling-server-0529292ff51c.herokuapp.com",
-        ],
-      },
-    );
-    this.webrtcProvider = provider;
+  };
+
+  observeRemoteCollaboratorCanvasState = (provider: WebrtcProvider) => {
     provider.awareness.on("update", () => {
       const x = new Map(provider.awareness.states);
       const state = x.has(provider.awareness.clientID);
@@ -508,6 +500,21 @@ class Collab extends PureComponent<Props, CollabState> {
         collaborators: x as any,
       });
     });
+  };
+
+  activateCollaboration = async () => {
+    this.setCollaborationUrl();
+    const provider = new WebrtcProvider(
+      this.canvasId,
+      this.yMap?.doc as Y.Doc,
+      {
+        signaling: [
+          "wss://fileverse-signaling-server-0529292ff51c.herokuapp.com",
+        ],
+      },
+    );
+    this.webrtcProvider = provider;
+    this.observeRemoteCollaboratorCanvasState(provider);
 
     /**
      * if not username create username
@@ -519,10 +526,6 @@ class Collab extends PureComponent<Props, CollabState> {
         this.onUsernameChange(username);
       });
     }
-    /**
-     *  if no roomID and no roomKey - create an append to url
-     *
-     */
     /**
      *
      * pick save items from on and reconcile with current scene
