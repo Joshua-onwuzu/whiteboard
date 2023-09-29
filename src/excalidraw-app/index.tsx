@@ -3,7 +3,6 @@ import polyfill from "../polyfill";
 import LanguageDetector from "i18next-browser-languagedetector";
 import { useEffect, useRef, useState } from "react";
 import { trackEvent } from "../analytics";
-import { getDefaultAppState } from "../appState";
 import { ErrorDialog } from "../components/ErrorDialog";
 import { TopErrorBoundary } from "../components/TopErrorBoundary";
 import * as Y from "yjs";
@@ -53,7 +52,7 @@ import Collab, {
   isCollaboratingAtom,
   isOfflineAtom,
 } from "./collab/Collab";
-import { exportToBackend, isCollaborationLink } from "./data";
+import { isCollaborationLink } from "./data";
 import {
   getLibraryItemsFromStorage,
   importFromLocalStorage,
@@ -61,10 +60,7 @@ import {
 } from "./data/localStorage";
 import CustomStats from "./CustomStats";
 import { restore } from "../data/restore";
-import {
-  ExportToExcalidrawPlus,
-  exportToExcalidrawPlus,
-} from "./components/ExportToExcalidrawPlus";
+import { ExportToExcalidrawPlus } from "./components/ExportToExcalidrawPlus";
 import { updateStaleImageStatuses } from "./data/FileManager";
 import { isInitializedImageElement } from "../element/typeChecks";
 import { LocalData } from "./data/LocalData";
@@ -404,45 +400,6 @@ const ExcalidrawWrapper = () => {
     null,
   );
 
-  const onExportToBackend = async (
-    exportedElements: readonly NonDeletedExcalidrawElement[],
-    appState: Partial<AppState>,
-    files: BinaryFiles,
-    canvas: HTMLCanvasElement,
-  ) => {
-    if (exportedElements.length === 0) {
-      return window.alert(t("alerts.cannotExportEmptyCanvas"));
-    }
-    if (canvas) {
-      try {
-        const { url, errorMessage } = await exportToBackend(
-          exportedElements,
-          {
-            ...appState,
-            viewBackgroundColor: appState.exportBackground
-              ? appState.viewBackgroundColor
-              : getDefaultAppState().viewBackgroundColor,
-          },
-          files,
-        );
-
-        if (errorMessage) {
-          setErrorMessage(errorMessage);
-        }
-
-        if (url) {
-          setLatestShareableLink(url);
-        }
-      } catch (error: any) {
-        if (error.name !== "AbortError") {
-          const { width, height } = canvas;
-          console.error(error, { width, height });
-          setErrorMessage(error.message);
-        }
-      }
-    }
-  };
-
   const renderCustomStats = (
     elements: readonly NonDeletedExcalidrawElement[],
     appState: UIAppState,
@@ -503,7 +460,6 @@ const ExcalidrawWrapper = () => {
           canvasActions: {
             toggleTheme: true,
             export: {
-              onExportToBackend,
               renderCustomUI: (elements, appState, files) => {
                 return (
                   <ExportToExcalidrawPlus
@@ -558,13 +514,7 @@ const ExcalidrawWrapper = () => {
             <OverwriteConfirmDialog.Action
               title={t("overwriteConfirm.action.excalidrawPlus.title")}
               actionLabel={t("overwriteConfirm.action.excalidrawPlus.button")}
-              onClick={() => {
-                exportToExcalidrawPlus(
-                  excalidrawAPI.getSceneElements(),
-                  excalidrawAPI.getAppState(),
-                  excalidrawAPI.getFiles(),
-                );
-              }}
+              onClick={() => null}
             >
               {t("overwriteConfirm.action.excalidrawPlus.description")}
             </OverwriteConfirmDialog.Action>

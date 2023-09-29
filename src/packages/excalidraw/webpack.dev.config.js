@@ -83,6 +83,9 @@ module.exports = {
       ),
     }),
   ],
+  performance: {
+    hints: false,
+  },
   externals: {
     react: {
       root: "React",

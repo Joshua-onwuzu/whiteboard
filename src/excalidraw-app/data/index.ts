@@ -1,24 +1,10 @@
-import { compressData } from "../../data/encode";
 import { generateEncryptionKey } from "../../data/encryption";
-import { serializeAsJSON } from "../../data/json";
 import { isInvisiblySmallElement } from "../../element/sizeHelpers";
-import { isInitializedImageElement } from "../../element/typeChecks";
-import { ExcalidrawElement, FileId } from "../../element/types";
+import { ExcalidrawElement } from "../../element/types";
 import { t } from "../../i18n";
-import {
-  AppState,
-  BinaryFileData,
-  BinaryFiles,
-  UserIdleState,
-} from "../../types";
+import { AppState, UserIdleState } from "../../types";
 import { bytesToHexString } from "../../utils";
-import {
-  DELETED_ELEMENT_TIMEOUT,
-  FILE_UPLOAD_MAX_BYTES,
-  ROOM_ID_BYTES,
-} from "../app_constants";
-import { encodeFilesForUpload } from "./FileManager";
-import { saveFilesToFirebase } from "./firebase";
+import { DELETED_ELEMENT_TIMEOUT, ROOM_ID_BYTES } from "../app_constants";
 
 export type SyncableExcalidrawElement = ExcalidrawElement & {
   _brand: "SyncableExcalidrawElement";
@@ -40,8 +26,6 @@ export const getSyncableElements = (elements: readonly ExcalidrawElement[]) =>
   elements.filter((element) =>
     isSyncableElement(element),
   ) as SyncableExcalidrawElement[];
-
-const BACKEND_V2_POST = import.meta.env.VITE_APP_BACKEND_V2_POST_URL;
 
 const generateRoomId = async () => {
   const buffer = new Uint8Array(ROOM_ID_BYTES);
@@ -166,68 +150,3 @@ export const getCollaborationLink = (data: {
  * Decodes shareLink data using the legacy buffer format.
  * @deprecated
  */
-
-type ExportToBackendResult =
-  | { url: null; errorMessage: string }
-  | { url: string; errorMessage: null };
-
-export const exportToBackend = async (
-  elements: readonly ExcalidrawElement[],
-  appState: Partial<AppState>,
-  files: BinaryFiles,
-): Promise<ExportToBackendResult> => {
-  const encryptionKey = await generateEncryptionKey("string");
-
-  const payload = await compressData(
-    new TextEncoder().encode(
-      serializeAsJSON(elements, appState, files, "database"),
-    ),
-    { encryptionKey },
-  );
-
-  try {
-    const filesMap = new Map<FileId, BinaryFileData>();
-    for (const element of elements) {
-      if (isInitializedImageElement(element) && files[element.fileId]) {
-        filesMap.set(element.fileId, files[element.fileId]);
-      }
-    }
-
-    const filesToUpload = await encodeFilesForUpload({
-      files: filesMap,
-      encryptionKey,
-      maxBytes: FILE_UPLOAD_MAX_BYTES,
-    });
-
-    const response = await fetch(BACKEND_V2_POST, {
-      method: "POST",
-      body: payload.buffer,
-    });
-    const json = await response.json();
-    if (json.id) {
-      const url = new URL(window.location.href);
-      // We need to store the key (and less importantly the id) as hash instead
-      // of queryParam in order to never send it to the server
-      url.hash = `json=${json.id},${encryptionKey}`;
-      const urlString = url.toString();
-
-      await saveFilesToFirebase({
-        prefix: `/files/shareLinks/${json.id}`,
-        files: filesToUpload,
-      });
-
-      return { url: urlString, errorMessage: null };
-    } else if (json.error_class === "RequestTooLargeError") {
-      return {
-        url: null,
-        errorMessage: t("alerts.couldNotCreateShareableLinkTooBig"),
-      };
-    }
-
-    return { url: null, errorMessage: t("alerts.couldNotCreateShareableLink") };
-  } catch (error: any) {
-    console.error(error);
-
-    return { url: null, errorMessage: t("alerts.couldNotCreateShareableLink") };
-  }
-};
