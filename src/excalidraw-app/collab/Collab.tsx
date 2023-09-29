@@ -4,10 +4,7 @@ import { AppState, ExcalidrawImperativeAPI } from "../../types";
 import { ErrorDialog } from "../../components/ErrorDialog";
 import { APP_NAME, ENV, EVENT } from "../../constants";
 import * as Y from "yjs";
-import {
-  ExcalidrawElement,
-  InitializedExcalidrawImageElement,
-} from "../../element/types";
+import { ExcalidrawElement } from "../../element/types";
 import {
   getSceneVersion,
   restoreElements,
@@ -15,24 +12,13 @@ import {
 import { Collaborator, Gesture } from "../../types";
 import Gun, { ISEAPair } from "gun";
 import Sea from "gun/sea";
-import {
-  CURSOR_SYNC_TIMEOUT,
-  FILE_UPLOAD_MAX_BYTES,
-  FIREBASE_STORAGE_PREFIXES,
-} from "../app_constants";
+import { CURSOR_SYNC_TIMEOUT } from "../app_constants";
 import { SocketUpdateDataSource } from "../data";
-import { loadFilesFromFirebase, saveFilesToFirebase } from "../data/firebase";
 import {
   importUsernameFromLocalStorage,
   saveUsernameToLocalStorage,
 } from "../data/localStorage";
-import Portal from "./Portal";
 import RoomDialog from "./RoomDialog";
-import { UserIdleState } from "../../types";
-import { IDLE_THRESHOLD, ACTIVE_THRESHOLD } from "../../constants";
-import { encodeFilesForUpload, FileManager } from "../data/FileManager";
-import { AbortError } from "../../errors";
-import { isInitializedImageElement } from "../../element/typeChecks";
 import {
   ReconciledElements,
   reconcileElements as _reconcileElements,
@@ -62,7 +48,6 @@ export interface CollabAPI {
   startCollaboration: CollabInstance["startCollaboration"];
   stopCollaboration: CollabInstance["stopCollaboration"];
   syncElements: CollabInstance["syncElements"];
-  fetchImageFilesFromFirebase: CollabInstance["fetchImageFilesFromFirebase"];
   setUsername: (username: string) => void;
 }
 export const instantiateGun = () => {
@@ -86,8 +71,6 @@ interface PublicProps {
 type Props = PublicProps & { modalIsShown: boolean };
 
 class Collab extends PureComponent<Props, CollabState> {
-  portal: Portal;
-  fileManager: FileManager;
   excalidrawAPI: Props["excalidrawAPI"];
   activeIntervalId: number | null;
   idleTimeoutId: number | null;
@@ -114,35 +97,8 @@ class Collab extends PureComponent<Props, CollabState> {
     this.decryptionKey = props.decryptionKey;
     this.contractAddress = props.contractAddress;
     this.isNewCollaborating = props.isNewCollaborating;
-    this.portal = new Portal(this);
     this.webrtcProvider = null;
     this.searchParams = new URLSearchParams();
-
-    this.fileManager = new FileManager({
-      getFiles: async (fileIds) => {
-        const { roomId, roomKey } = this.portal;
-        if (!roomId || !roomKey) {
-          throw new AbortError();
-        }
-
-        return loadFilesFromFirebase(`files/rooms/${roomId}`, roomKey, fileIds);
-      },
-      saveFiles: async ({ addedFiles }) => {
-        const { roomId, roomKey } = this.portal;
-        if (!roomId || !roomKey) {
-          throw new AbortError();
-        }
-
-        return saveFilesToFirebase({
-          prefix: `${FIREBASE_STORAGE_PREFIXES.collabFiles}/${roomId}`,
-          files: await encodeFilesForUpload({
-            files: addedFiles,
-            encryptionKey: roomKey,
-            maxBytes: FILE_UPLOAD_MAX_BYTES,
-          }),
-        });
-      },
-    });
     this.excalidrawAPI = props.excalidrawAPI;
     this.activeIntervalId = null;
     this.idleTimeoutId = null;
@@ -162,7 +118,6 @@ class Collab extends PureComponent<Props, CollabState> {
       onPointerUpdate: this.onPointerUpdate,
       startCollaboration: this.startCollaboration,
       syncElements: this.syncElements,
-      fetchImageFilesFromFirebase: this.fetchImageFilesFromFirebase,
       stopCollaboration: this.stopCollaboration,
       setUsername: this.setUsername,
     };
@@ -238,34 +193,6 @@ class Collab extends PureComponent<Props, CollabState> {
     this.excalidrawAPI.updateScene({
       collaborators: this.collaborators,
     });
-  };
-
-  private fetchImageFilesFromFirebase = async (opts: {
-    elements: readonly ExcalidrawElement[];
-    /**
-     * Indicates whether to fetch files that are errored or pending and older
-     * than 10 seconds.
-     *
-     * Use this as a mechanism to fetch files which may be ok but for some
-     * reason their status was not updated correctly.
-     */
-    forceFetchFiles?: boolean;
-  }) => {
-    const unfetchedImages = opts.elements
-      .filter((element) => {
-        return (
-          isInitializedImageElement(element) &&
-          !this.fileManager.isFileHandled(element.fileId) &&
-          !element.isDeleted &&
-          (opts.forceFetchFiles
-            ? element.status !== "pending" ||
-              Date.now() - element.updated > 10000
-            : element.status === "saved")
-        );
-      })
-      .map((element) => (element as InitializedExcalidrawImageElement).fileId);
-
-    return await this.fileManager.getFiles(unfetchedImages);
   };
 
   private getSavedCanvasElementsFromGun = async ({
@@ -348,15 +275,6 @@ class Collab extends PureComponent<Props, CollabState> {
       window.clearTimeout(this.idleTimeoutId);
       this.idleTimeoutId = null;
     }
-
-    this.idleTimeoutId = window.setTimeout(this.reportIdle, IDLE_THRESHOLD);
-
-    if (!this.activeIntervalId) {
-      this.activeIntervalId = window.setInterval(
-        this.reportActive,
-        ACTIVE_THRESHOLD,
-      );
-    }
   };
 
   private onVisibilityChange = () => {
@@ -369,27 +287,7 @@ class Collab extends PureComponent<Props, CollabState> {
         window.clearInterval(this.activeIntervalId);
         this.activeIntervalId = null;
       }
-      this.onIdleStateChange(UserIdleState.AWAY);
-    } else {
-      this.idleTimeoutId = window.setTimeout(this.reportIdle, IDLE_THRESHOLD);
-      this.activeIntervalId = window.setInterval(
-        this.reportActive,
-        ACTIVE_THRESHOLD,
-      );
-      this.onIdleStateChange(UserIdleState.ACTIVE);
     }
-  };
-
-  private reportIdle = () => {
-    this.onIdleStateChange(UserIdleState.IDLE);
-    if (this.activeIntervalId) {
-      window.clearInterval(this.activeIntervalId);
-      this.activeIntervalId = null;
-    }
-  };
-
-  private reportActive = () => {
-    this.onIdleStateChange(UserIdleState.ACTIVE);
   };
 
   private initializeIdleDetector = () => {
@@ -442,10 +340,6 @@ class Collab extends PureComponent<Props, CollabState> {
     },
     CURSOR_SYNC_TIMEOUT,
   );
-
-  onIdleStateChange = (userState: UserIdleState) => {
-    this.portal.broadcastIdleChange(userState);
-  };
 
   applyChangesOnYdoc = (
     elements: readonly ExcalidrawElement[],

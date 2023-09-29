@@ -15,6 +15,7 @@ import Footer from "../../components/footer/FooterCenter";
 import MainMenu from "../../components/main-menu/MainMenu";
 import WelcomeScreen from "../../components/welcome-screen/WelcomeScreen";
 import LiveCollaborationTrigger from "../../components/live-collaboration/LiveCollaborationTrigger";
+import ExcalidrawApp from "../../excalidraw-app/index";
 
 const ExcalidrawBase = (props: ExcalidrawProps) => {
   const {
@@ -254,3 +255,4 @@ export { DefaultSidebar } from "../../components/DefaultSidebar";
 
 export { normalizeLink } from "../../data/url";
 export { convertToExcalidrawElements } from "../../data/transform";
+export { ExcalidrawApp };
