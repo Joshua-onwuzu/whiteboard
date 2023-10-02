@@ -21,7 +21,7 @@ import {
 } from "../../../element/types";
 import { useCallbackRefState } from "../../../hooks/useCallbackRefState";
 import { t } from "../../../i18n";
-import { Excalidraw, defaultLang, LiveCollaborationTrigger } from "../index";
+import { Excalidraw, defaultLang } from "../index";
 import {
   AppState,
   LibraryItems,
@@ -69,7 +69,7 @@ import {
 import { AppMainMenu } from "./components/AppMainMenu";
 import { AppWelcomeScreen } from "./components/AppWelcomeScreen";
 import { AppFooter } from "./components/AppFooter";
-import { atom, Provider, useAtom, useAtomValue } from "jotai";
+import { atom, Provider, SetStateAction, useAtom, useAtomValue } from "jotai";
 import { useAtomWithInitialValue } from "../../../jotai";
 import { appJotaiStore } from "./app-jotai";
 
@@ -165,7 +165,14 @@ export const appLangCodeAtom = atom(
   Array.isArray(detectedLangCode) ? detectedLangCode[0] : detectedLangCode,
 );
 
-const ExcalidrawWrapper = () => {
+const ExcalidrawWrapper = ({
+  topRightUI,
+}: {
+  topRightUI?: (
+    isCollaborating: boolean,
+    setCollabDialogShown: (update: SetStateAction<boolean>) => void,
+  ) => JSX.Element;
+}) => {
   const [errorMessage, setErrorMessage] = useState("");
   const [langCode, setLangCode] = useAtom(appLangCodeAtom);
   const isCollabDisabled = isRunningInIframe();
@@ -486,17 +493,15 @@ const ExcalidrawWrapper = () => {
         autoFocus={true}
         theme={theme}
         renderTopRightUI={(isMobile) => {
-          if (isMobile || !collabAPI || isCollabDisabled) {
+          if (isMobile || !collabAPI || isCollabDisabled || !topRightUI) {
             return null;
           }
           return (
-            <div>
-              <LiveCollaborationTrigger
-                isCollaborating={isCollaborating}
-                onSelect={() => setCollabDialogShown(true)}
-              />
-              <button>Publish</button>
-            </div>
+            // <LiveCollaborationTrigger
+            //   isCollaborating={isCollaborating}
+            //   onSelect={() => setCollabDialogShown(true)}
+            // />
+            topRightUI(isCollaborating, setCollabDialogShown)
           );
         }}
       >
@@ -555,11 +560,18 @@ const ExcalidrawWrapper = () => {
   );
 };
 
-const ExcalidrawApp = () => {
+const ExcalidrawApp = ({
+  topRightUI,
+}: {
+  topRightUI?: (
+    isCollaborating: boolean,
+    setCollabDialogShown: (update: SetStateAction<boolean>) => void,
+  ) => JSX.Element;
+}) => {
   return (
     <TopErrorBoundary>
       <Provider unstable_createStore={() => appJotaiStore}>
-        <ExcalidrawWrapper />
+        <ExcalidrawWrapper topRightUI={topRightUI} />
       </Provider>
     </TopErrorBoundary>
   );

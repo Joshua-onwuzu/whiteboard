@@ -1,6 +1,6 @@
 {
   "name": "@fileverse/whiteboard",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "main": "main.js",
   "types": "types/packages/excalidraw/index.d.ts",
   "files": [
