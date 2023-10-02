@@ -5,10 +5,7 @@ import { ErrorDialog } from "../../../../components/ErrorDialog";
 import { APP_NAME, ENV, EVENT } from "../../../../constants";
 import * as Y from "yjs";
 import { ExcalidrawElement } from "../../../../element/types";
-import {
-  getSceneVersion,
-  restoreElements,
-} from "../../index";
+import { getSceneVersion, restoreElements } from "../../index";
 import { Collaborator, Gesture } from "../../../../types";
 import Gun, { ISEAPair } from "gun";
 import Sea from "gun/sea";

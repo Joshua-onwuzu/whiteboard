@@ -21,11 +21,7 @@ import {
 } from "../../../element/types";
 import { useCallbackRefState } from "../../../hooks/useCallbackRefState";
 import { t } from "../../../i18n";
-import {
-  Excalidraw,
-  defaultLang,
-  LiveCollaborationTrigger,
-} from "../index";
+import { Excalidraw, defaultLang, LiveCollaborationTrigger } from "../index";
 import {
   AppState,
   LibraryItems,
@@ -66,7 +62,10 @@ import { isInitializedImageElement } from "../../../element/typeChecks";
 import { LocalData } from "./data/LocalData";
 import { isBrowserStorageStateNewer } from "./data/tabSync";
 import clsx from "clsx";
-import { parseLibraryTokensFromUrl, useHandleLibrary } from "../../../data/library";
+import {
+  parseLibraryTokensFromUrl,
+  useHandleLibrary,
+} from "../../../data/library";
 import { AppMainMenu } from "./components/AppMainMenu";
 import { AppWelcomeScreen } from "./components/AppWelcomeScreen";
 import { AppFooter } from "./components/AppFooter";
@@ -491,10 +490,13 @@ const ExcalidrawWrapper = () => {
             return null;
           }
           return (
-            <LiveCollaborationTrigger
-              isCollaborating={isCollaborating}
-              onSelect={() => setCollabDialogShown(true)}
-            />
+            <div>
+              <LiveCollaborationTrigger
+                isCollaborating={isCollaborating}
+                onSelect={() => setCollabDialogShown(true)}
+              />
+              <button>Publish</button>
+            </div>
           );
         }}
       >
