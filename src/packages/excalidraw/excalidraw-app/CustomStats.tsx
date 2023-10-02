@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
-import { debounce, getVersion, nFormatter } from "../utils";
+import { debounce, getVersion, nFormatter } from "../../../utils";
 import {
   getElementsStorageSize,
   getTotalStorageSize,
 } from "./data/localStorage";
-import { DEFAULT_VERSION } from "../constants";
-import { t } from "../i18n";
-import { copyTextToSystemClipboard } from "../clipboard";
-import { NonDeletedExcalidrawElement } from "../element/types";
-import { UIAppState } from "../types";
+import { DEFAULT_VERSION } from "../../../constants";
+import { t } from "../../../i18n";
+import { copyTextToSystemClipboard } from "../../../clipboard";
+import { NonDeletedExcalidrawElement } from "../../../element/types";
+import { UIAppState } from "../../../types";
 
 type StorageSizes = { scene: number; total: number };
 

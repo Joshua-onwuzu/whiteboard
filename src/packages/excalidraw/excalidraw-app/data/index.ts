@@ -1,9 +1,9 @@
-import { generateEncryptionKey } from "../../data/encryption";
-import { isInvisiblySmallElement } from "../../element/sizeHelpers";
-import { ExcalidrawElement } from "../../element/types";
-import { t } from "../../i18n";
-import { AppState, UserIdleState } from "../../types";
-import { bytesToHexString } from "../../utils";
+import { generateEncryptionKey } from "../../../../data/encryption";
+import { isInvisiblySmallElement } from "../../../../element/sizeHelpers";
+import { ExcalidrawElement } from "../../../../element/types";
+import { t } from "../../../../i18n";
+import { AppState, UserIdleState } from "../../../../types";
+import { bytesToHexString } from "../../../../utils";
 import { DELETED_ELEMENT_TIMEOUT, ROOM_ID_BYTES } from "../app_constants";
 
 export type SyncableExcalidrawElement = ExcalidrawElement & {

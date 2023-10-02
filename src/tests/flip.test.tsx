@@ -19,7 +19,7 @@ import {
   FileId,
 } from "../element/types";
 import { newLinearElement } from "../element";
-import ExcalidrawApp from "../excalidraw-app";
+import ExcalidrawApp from "../packages/excalidraw/excalidraw-app";
 import { mutateElement } from "../element/mutateElement";
 import { NormalizedZoomValue } from "../types";
 import { ROUNDNESS } from "../constants";

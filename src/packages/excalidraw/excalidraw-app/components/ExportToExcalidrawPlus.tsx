@@ -1,12 +1,12 @@
 import React from "react";
-import { Card } from "../../components/Card";
-import { ToolButton } from "../../components/ToolButton";
-import { NonDeletedExcalidrawElement } from "../../element/types";
-import { AppState, BinaryFiles } from "../../types";
-import { useI18n } from "../../i18n";
-import { trackEvent } from "../../analytics";
-import { getFrame } from "../../utils";
-import { ExcalidrawLogo } from "../../components/ExcalidrawLogo";
+import { Card } from "../../../../components/Card";
+import { ToolButton } from "../../../../components/ToolButton";
+import { NonDeletedExcalidrawElement } from "../../../../element/types";
+import { AppState, BinaryFiles } from "../../../../types";
+import { useI18n } from "../../../../i18n";
+import { trackEvent } from "../../../../analytics";
+import { getFrame } from "../../../../utils";
+import { ExcalidrawLogo } from "../../../../components/ExcalidrawLogo";
 
 export const ExportToExcalidrawPlus: React.FC<{
   elements: readonly NonDeletedExcalidrawElement[];

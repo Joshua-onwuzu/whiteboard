@@ -1,13 +1,13 @@
 import { useRef, useState } from "react";
 import * as Popover from "@radix-ui/react-popover";
 
-import { copyTextToSystemClipboard } from "../../clipboard";
-import { trackEvent } from "../../analytics";
-import { getFrame } from "../../utils";
-import { useI18n } from "../../i18n";
-import { KEYS } from "../../keys";
+import { copyTextToSystemClipboard } from "../../../../clipboard";
+import { trackEvent } from "../../../../analytics";
+import { getFrame } from "../../../../utils";
+import { useI18n } from "../../../../i18n";
+import { KEYS } from "../../../../keys";
 
-import { Dialog } from "../../components/Dialog";
+import { Dialog } from "../../../../components/Dialog";
 import {
   copyIcon,
   playerPlayIcon,
@@ -16,9 +16,9 @@ import {
   shareIOS,
   shareWindows,
   tablerCheckIcon,
-} from "../../components/icons";
-import { TextField } from "../../components/TextField";
-import { FilledButton } from "../../components/FilledButton";
+} from "../../../../components/icons";
+import { TextField } from "../../../../components/TextField";
+import { FilledButton } from "../../../../components/FilledButton";
 
 // import { ReactComponent as CollabImage } from "../../assets/lock.svg";
 import "./RoomDialog.scss";

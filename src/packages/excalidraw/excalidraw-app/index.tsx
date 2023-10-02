@@ -1,10 +1,10 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import polyfill from "../polyfill";
+import polyfill from "../../../polyfill";
 import LanguageDetector from "i18next-browser-languagedetector";
 import { useEffect, useRef, useState } from "react";
-import { trackEvent } from "../analytics";
-import { ErrorDialog } from "../components/ErrorDialog";
-import { TopErrorBoundary } from "../components/TopErrorBoundary";
+import { trackEvent } from "../../../analytics";
+import { ErrorDialog } from "../../../components/ErrorDialog";
+import { TopErrorBoundary } from "../../../components/TopErrorBoundary";
 import * as Y from "yjs";
 import {
   APP_NAME,
@@ -12,20 +12,20 @@ import {
   THEME,
   TITLE_TIMEOUT,
   VERSION_TIMEOUT,
-} from "../constants";
+} from "../../../constants";
 import {
   ExcalidrawElement,
   FileId,
   NonDeletedExcalidrawElement,
   Theme,
-} from "../element/types";
-import { useCallbackRefState } from "../hooks/useCallbackRefState";
-import { t } from "../i18n";
+} from "../../../element/types";
+import { useCallbackRefState } from "../../../hooks/useCallbackRefState";
+import { t } from "../../../i18n";
 import {
   Excalidraw,
   defaultLang,
   LiveCollaborationTrigger,
-} from "../packages/excalidraw/index";
+} from "../index";
 import {
   AppState,
   LibraryItems,
@@ -33,7 +33,7 @@ import {
   BinaryFiles,
   ExcalidrawInitialDataState,
   UIAppState,
-} from "../types";
+} from "../../../types";
 import {
   debounce,
   getVersion,
@@ -43,7 +43,7 @@ import {
   ResolvablePromise,
   resolvablePromise,
   isRunningInIframe,
-} from "../utils";
+} from "../../../utils";
 import { STORAGE_KEYS, SYNC_BROWSER_TABS_TIMEOUT } from "./app_constants";
 import Collab, {
   CollabAPI,
@@ -59,24 +59,24 @@ import {
   importUsernameFromLocalStorage,
 } from "./data/localStorage";
 import CustomStats from "./CustomStats";
-import { restore } from "../data/restore";
+import { restore } from "../../../data/restore";
 import { ExportToExcalidrawPlus } from "./components/ExportToExcalidrawPlus";
 import { updateStaleImageStatuses } from "./data/FileManager";
-import { isInitializedImageElement } from "../element/typeChecks";
+import { isInitializedImageElement } from "../../../element/typeChecks";
 import { LocalData } from "./data/LocalData";
 import { isBrowserStorageStateNewer } from "./data/tabSync";
 import clsx from "clsx";
-import { parseLibraryTokensFromUrl, useHandleLibrary } from "../data/library";
+import { parseLibraryTokensFromUrl, useHandleLibrary } from "../../../data/library";
 import { AppMainMenu } from "./components/AppMainMenu";
 import { AppWelcomeScreen } from "./components/AppWelcomeScreen";
 import { AppFooter } from "./components/AppFooter";
 import { atom, Provider, useAtom, useAtomValue } from "jotai";
-import { useAtomWithInitialValue } from "../jotai";
+import { useAtomWithInitialValue } from "../../../jotai";
 import { appJotaiStore } from "./app-jotai";
 
 import "./index.scss";
-import { ShareableLinkDialog } from "../components/ShareableLinkDialog";
-import { OverwriteConfirmDialog } from "../components/OverwriteConfirm/OverwriteConfirm";
+import { ShareableLinkDialog } from "../../../components/ShareableLinkDialog";
+import { OverwriteConfirmDialog } from "../../../components/OverwriteConfirm/OverwriteConfirm";
 import { IndexeddbPersistence } from "y-indexeddb";
 import { ISEAPair } from "gun";
 import { Base64 } from "base64-string";

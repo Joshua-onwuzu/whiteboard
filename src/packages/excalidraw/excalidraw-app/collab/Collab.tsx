@@ -1,15 +1,15 @@
 import throttle from "lodash.throttle";
 import { PureComponent } from "react";
-import { AppState, ExcalidrawImperativeAPI } from "../../types";
-import { ErrorDialog } from "../../components/ErrorDialog";
-import { APP_NAME, ENV, EVENT } from "../../constants";
+import { AppState, ExcalidrawImperativeAPI } from "../../../../types";
+import { ErrorDialog } from "../../../../components/ErrorDialog";
+import { APP_NAME, ENV, EVENT } from "../../../../constants";
 import * as Y from "yjs";
-import { ExcalidrawElement } from "../../element/types";
+import { ExcalidrawElement } from "../../../../element/types";
 import {
   getSceneVersion,
   restoreElements,
-} from "../../packages/excalidraw/index";
-import { Collaborator, Gesture } from "../../types";
+} from "../../index";
+import { Collaborator, Gesture } from "../../../../types";
 import Gun, { ISEAPair } from "gun";
 import Sea from "gun/sea";
 import { CURSOR_SYNC_TIMEOUT } from "../app_constants";
