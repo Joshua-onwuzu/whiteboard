@@ -24,6 +24,10 @@ import { resetBrowserStateVersions } from "../data/tabSync";
 import { atom, useAtom } from "jotai";
 import { appJotaiStore } from "../app-jotai";
 import { WebrtcProvider } from "y-webrtc";
+// import { isInitializedImageElement } from "../../../../element/typeChecks";
+// import { FileManager } from "../data/FileManager";
+// import { AbortError } from "../../../../errors";
+// import { loadFilesFromIPFS } from "../ipfs";
 
 export const collabAPIAtom = atom<CollabAPI | null>(null);
 export const collabDialogShownAtom = atom(false);
@@ -42,6 +46,7 @@ export interface CollabAPI {
   /** function so that we can access the latest value from stale callbacks */
   isCollaborating: () => boolean;
   onPointerUpdate: CollabInstance["onPointerUpdate"];
+  // fetchImageFilesFromIPFS: CollabInstance["fetchImageFilesFromIPFS"];
   startCollaboration: CollabInstance["startCollaboration"];
   stopCollaboration: CollabInstance["stopCollaboration"];
   syncElements: CollabInstance["syncElements"];
@@ -78,6 +83,7 @@ class Collab extends PureComponent<Props, CollabState> {
   isNewCollaborating: boolean;
   webrtcProvider: WebrtcProvider | null;
   searchParams: URLSearchParams;
+  // fileManager: FileManager;
 
   private socketInitializationTimer?: number;
   private lastBroadcastedOrReceivedSceneVersion: number = -1;
@@ -100,6 +106,41 @@ class Collab extends PureComponent<Props, CollabState> {
     this.activeIntervalId = null;
     this.idleTimeoutId = null;
     this.yMap = props.yMap;
+    // this.fileManager = new FileManager({
+    //   getFiles: async (fileIds) => {
+    //     const roomKey = this.decryptionKey;
+    //     const roomId = this.canvasId;
+    //     if (!roomKey || !roomId) {
+    //       throw new AbortError();
+    //     }
+    //     /**
+    //      *
+    //      *
+    //      *  pass in roomKey from url, use it to encrypt and decrypt file
+    //      * roomKey: should the key from the url used to encrypt files and not canvas key since that
+    //      * is only used to encrypt files on gun
+    //      *
+    //      */
+
+    //     return loadFilesFromIPFS(roomKey, fileIds);
+    //   },
+    //   saveFiles: async ({ addedFiles }) => {
+    //     const roomKey = this.decryptionKey;
+    //     const roomId = this.canvasId;
+    //     if (!roomId || !roomKey) {
+    //       throw new AbortError();
+    //     }
+
+    //     return saveFilesToIPFS({
+    //       prefix: `${FIREBASE_STORAGE_PREFIXES.collabFiles}/${roomId}`,
+    //       files: await encodeFilesForUpload({
+    //         files: addedFiles,
+    //         encryptionKey: roomKey,
+    //         maxBytes: FILE_UPLOAD_MAX_BYTES,
+    //       }),
+    //     });
+    //   },
+    // });
   }
 
   componentDidMount() {
@@ -115,6 +156,7 @@ class Collab extends PureComponent<Props, CollabState> {
       onPointerUpdate: this.onPointerUpdate,
       startCollaboration: this.startCollaboration,
       syncElements: this.syncElements,
+      // fetchImageFilesFromIPFS: this.fetchImageFilesFromIPFS,
       stopCollaboration: this.stopCollaboration,
       setUsername: this.setUsername,
     };
@@ -160,6 +202,32 @@ class Collab extends PureComponent<Props, CollabState> {
   private setIsCollaborating = (isCollaborating: boolean) => {
     appJotaiStore.set(isCollaboratingAtom, isCollaborating);
   };
+  // private fetchImageFilesFromIPFS = async (opts: {
+  //   elements: readonly ExcalidrawElement[];
+  //   /**
+  //    * Indicates whether to fetch files that are errored or pending and older
+  //    * than 10 seconds.
+  //    *
+  //    * Use this as a mechanism to fetch files which may be ok but for some
+  //    * reason their status was not updated correctly.
+  //    */
+  //   forceFetchFiles?: boolean;
+  // }) => {
+  //   const unfetchedImages = opts.elements
+  //     .filter((element) => {
+  //       return (
+  //         isInitializedImageElement(element) &&
+  //         !this.fileManager.isFileHandled(element.fileId) &&
+  //         !element.isDeleted &&
+  //         (opts.forceFetchFiles
+  //           ? element.status !== "pending" ||
+  //             Date.now() - element.updated > 10000
+  //           : element.status === "saved")
+  //       );
+  //     })
+  //     .map((element) => (element as InitializedExcalidrawImageElement).fileId);
+  //   return await this.fileManager.getFiles(unfetchedImages);
+  // };
   private removeCollaborationUrl = () => {
     const link = window.location.href;
     const formatedLink = link.replace("/#", "");

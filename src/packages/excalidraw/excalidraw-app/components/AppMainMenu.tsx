@@ -7,9 +7,10 @@ export const AppMainMenu: React.FC<{
   setCollabDialogShown: (toggle: boolean) => any;
   isCollaborating: boolean;
   isCollabEnabled: boolean;
+  topLeftUI?: () => JSX.Element;
 }> = React.memo((props) => {
   return (
-    <MainMenu>
+    <MainMenu topLeftUI={props.topLeftUI}>
       <MainMenu.DefaultItems.LoadScene />
       <MainMenu.DefaultItems.SaveToActiveFile />
       <MainMenu.DefaultItems.Export />

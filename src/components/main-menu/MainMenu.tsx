@@ -6,7 +6,6 @@ import * as DefaultItems from "./DefaultItems";
 
 import { UserList } from "../UserList";
 import { t } from "../../i18n";
-import { HamburgerMenuIcon } from "../icons";
 import { withInternalFallback } from "../hoc/withInternalFallback";
 import { composeEventHandlers } from "../../utils";
 import { useTunnels } from "../../context/tunnels";
@@ -18,8 +17,10 @@ const MainMenu = Object.assign(
     ({
       children,
       onSelect,
+      topLeftUI,
     }: {
       children?: React.ReactNode;
+      topLeftUI?: () => JSX.Element;
       /**
        * Called when any menu item is selected (clicked on).
        */
@@ -37,14 +38,10 @@ const MainMenu = Object.assign(
         <MainMenuTunnel.In>
           <DropdownMenu open={appState.openMenu === "canvas"}>
             <DropdownMenu.Trigger
-              onToggle={() => {
-                setAppState({
-                  openMenu: appState.openMenu === "canvas" ? null : "canvas",
-                });
-              }}
+              onToggle={() => null}
               data-testid="main-menu-trigger"
             >
-              {HamburgerMenuIcon}
+              {topLeftUI && topLeftUI()}
             </DropdownMenu.Trigger>
             <DropdownMenu.Content
               onClickOutside={onClickOutside}

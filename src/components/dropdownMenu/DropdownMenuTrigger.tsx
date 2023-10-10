@@ -1,5 +1,5 @@
-import clsx from "clsx";
-import { useDevice } from "../App";
+// import clsx from "clsx";
+// import { useDevice } from "../App";
 
 const MenuTrigger = ({
   className = "",
@@ -13,26 +13,27 @@ const MenuTrigger = ({
   onToggle: () => void;
   title?: string;
 } & Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "onSelect">) => {
-  const device = useDevice();
-  const classNames = clsx(
-    `dropdown-menu-button ${className}`,
-    "zen-mode-transition",
-    {
-      "dropdown-menu-button--mobile": device.isMobile,
-    },
-  ).trim();
+  // const device = useDevice();
+  // const classNames = clsx(
+  //   `dropdown-menu-button ${className}`,
+  //   "zen-mode-transition",
+  //   {
+  //     "dropdown-menu-button--mobile": device.isMobile,
+  //   },
+  // ).trim();
   return (
-    <button
-      data-prevent-outside-click
-      className={classNames}
-      onClick={onToggle}
-      type="button"
-      data-testid="dropdown-menu-button"
-      title={title}
-      {...rest}
-    >
-      {children}
-    </button>
+    <div>{children}</div>
+    // <button
+    //   data-prevent-outside-click
+    //   className={classNames}
+    //   onClick={onToggle}
+    //   type="button"
+    //   data-testid="dropdown-menu-button"
+    //   title={title}
+    //   {...rest}
+    // >
+    //   {children}
+    // </button>
   );
 };
 

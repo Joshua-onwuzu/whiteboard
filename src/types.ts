@@ -496,6 +496,7 @@ export type AppProps = Merge<
         canvasActions: Required<CanvasActions> & { export: ExportOpts };
       }
     >;
+    topLeftUI: () => JSX.Element;
     detectScroll: boolean;
     handleKeyboardGlobally: boolean;
     isCollaborating: boolean;

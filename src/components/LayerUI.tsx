@@ -14,7 +14,7 @@ import {
   UIAppState,
   AppClassProperties,
 } from "../types";
-import { capitalizeString, isShallowEqual } from "../utils";
+import { isShallowEqual } from "../utils";
 import { SelectedShapeActions, ShapesSwitcher } from "./Actions";
 import { ErrorDialog } from "./ErrorDialog";
 import { ImageExportDialog } from "./ImageExportDialog";
@@ -45,7 +45,6 @@ import { OverwriteConfirmDialog } from "./OverwriteConfirm/OverwriteConfirm";
 import { HandButton } from "./HandButton";
 import { isHandToolActive } from "../appState";
 import { TunnelsContext, useInitializeTunnels } from "../context/tunnels";
-import { LibraryIcon } from "./icons";
 import { UIAppStateContext } from "../context/ui-appState";
 import { DefaultSidebar } from "./DefaultSidebar";
 import { EyeDropper, activeEyeDropperAtom } from "./EyeDropper";
@@ -66,6 +65,7 @@ interface LayerUIProps {
   onPenModeToggle: () => void;
   showExitZenModeBtn: boolean;
   langCode: Language["code"];
+  topLeftUI: () => JSX.Element;
   renderTopRightUI?: ExcalidrawProps["renderTopRightUI"];
   renderCustomStats?: ExcalidrawProps["renderCustomStats"];
   UIOptions: AppProps["UIOptions"];
@@ -78,9 +78,10 @@ interface LayerUIProps {
 
 const DefaultMainMenu: React.FC<{
   UIOptions: AppProps["UIOptions"];
-}> = ({ UIOptions }) => {
+  topLeftUI: () => JSX.Element;
+}> = ({ UIOptions, topLeftUI }) => {
   return (
-    <MainMenu __fallback>
+    <MainMenu topLeftUI={topLeftUI} __fallback>
       <MainMenu.DefaultItems.LoadScene />
       <MainMenu.DefaultItems.SaveToActiveFile />
       {/* FIXME we should to test for this inside the item itself */}
@@ -126,6 +127,7 @@ const LayerUI = ({
   renderTopRightUI,
   renderCustomStats,
   UIOptions,
+  topLeftUI,
   onImageAction,
   onExportImage,
   renderWelcomeScreen,
@@ -339,8 +341,8 @@ const LayerUI = ({
       {/* render component fallbacks. Can be rendered anywhere as they'll be
           tunneled away. We only render tunneled components that actually
         have defaults when host do not render anything. */}
-      <DefaultMainMenu UIOptions={UIOptions} />
-      <DefaultSidebar.Trigger
+      <DefaultMainMenu topLeftUI={topLeftUI} UIOptions={UIOptions} />
+      {/* <DefaultSidebar.Trigger
         __fallback
         icon={LibraryIcon}
         title={capitalizeString(t("toolBar.library"))}
@@ -356,7 +358,7 @@ const LayerUI = ({
         tab={DEFAULT_SIDEBAR.defaultTab}
       >
         {t("toolBar.library")}
-      </DefaultSidebar.Trigger>
+      </DefaultSidebar.Trigger> */}
       <DefaultOverwriteConfirmDialog />
       {/* ------------------------------------------------------------------ */}
 

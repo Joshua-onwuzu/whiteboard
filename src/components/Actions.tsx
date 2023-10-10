@@ -236,52 +236,55 @@ export const ShapesSwitcher = ({
         const shortcut = letter
           ? `${letter} ${t("helpDialog.or")} ${numericKey}`
           : `${numericKey}`;
-        return (
-          <ToolButton
-            className={clsx("Shape", { fillable })}
-            key={value}
-            type="radio"
-            icon={icon}
-            checked={activeTool.type === value}
-            name="editor-current-shape"
-            title={`${capitalizeString(label)} — ${shortcut}`}
-            keyBindingLabel={numericKey || letter}
-            aria-label={capitalizeString(label)}
-            aria-keyshortcuts={shortcut}
-            data-testid={`toolbar-${value}`}
-            onPointerDown={({ pointerType }) => {
-              if (!appState.penDetected && pointerType === "pen") {
-                setAppState({
-                  penDetected: true,
-                  penMode: true,
+        if (value !== "image") {
+          return (
+            <ToolButton
+              className={clsx("Shape", { fillable })}
+              key={value}
+              type="radio"
+              icon={icon}
+              checked={activeTool.type === value}
+              name="editor-current-shape"
+              title={`${capitalizeString(label)} — ${shortcut}`}
+              keyBindingLabel={numericKey || letter}
+              aria-label={capitalizeString(label)}
+              aria-keyshortcuts={shortcut}
+              data-testid={`toolbar-${value}`}
+              onPointerDown={({ pointerType }) => {
+                if (!appState.penDetected && pointerType === "pen") {
+                  setAppState({
+                    penDetected: true,
+                    penMode: true,
+                  });
+                }
+              }}
+              onChange={({ pointerType }) => {
+                if (appState.activeTool.type !== value) {
+                  trackEvent("toolbar", value, "ui");
+                }
+                const nextActiveTool = updateActiveTool(appState, {
+                  type: value,
                 });
-              }
-            }}
-            onChange={({ pointerType }) => {
-              if (appState.activeTool.type !== value) {
-                trackEvent("toolbar", value, "ui");
-              }
-              const nextActiveTool = updateActiveTool(appState, {
-                type: value,
-              });
-              setAppState({
-                activeTool: nextActiveTool,
-                activeEmbeddable: null,
-                multiElement: null,
-                selectedElementIds: {},
-              });
-              setCursorForShape(interactiveCanvas, {
-                ...appState,
-                activeTool: nextActiveTool,
-              });
-              if (value === "image") {
-                onImageAction({ pointerType });
-              }
-            }}
-          />
-        );
+                setAppState({
+                  activeTool: nextActiveTool,
+                  activeEmbeddable: null,
+                  multiElement: null,
+                  selectedElementIds: {},
+                });
+                setCursorForShape(interactiveCanvas, {
+                  ...appState,
+                  activeTool: nextActiveTool,
+                });
+                // if (value === "image") {
+                //   onImageAction({ pointerType });
+                // }
+              }}
+            />
+          );
+        }
+        return <></>;
       })}
-      <div className="App-toolbar__divider" />
+      {/* <div className="App-toolbar__divider" /> */}
       {/* TEMP HACK because dropdown doesn't work well inside mobile toolbar */}
       {device.isMobile ? (
         <>

@@ -20,6 +20,7 @@ import {
   Theme,
 } from "../../../element/types";
 import { useCallbackRefState } from "../../../hooks/useCallbackRefState";
+import { newElementWith } from "../../../../src/element/mutateElement";
 import { t } from "../../../i18n";
 import { Excalidraw, defaultLang } from "../index";
 import {
@@ -79,6 +80,7 @@ import { OverwriteConfirmDialog } from "../../../components/OverwriteConfirm/Ove
 import { IndexeddbPersistence } from "y-indexeddb";
 import { ISEAPair } from "gun";
 import { Base64 } from "base64-string";
+import { ResolutionType } from "../../../utility-types";
 
 polyfill();
 
@@ -136,28 +138,40 @@ const initializeScene = async (opts: {
     commitToHistory: false,
   };
 };
-const getISEAKeyPair = (key: string | undefined): ISEAPair | undefined => {
-  if (!key) {
-    return;
-  }
+const getWhiteboardKeys = (
+  key: string,
+): {
+  contentKey: ISEAPair;
+  fileKey: string;
+} => {
   const enc = new Base64();
   const b64 = enc.decode(key);
-  return JSON.parse(b64)?.seaKeyPair;
+  const contentKey = JSON.parse(b64)?.seaKeyPair;
+  const fileKey = JSON.parse(b64)?.roomKey;
+  return {
+    contentKey,
+    fileKey,
+  };
 };
 const getRoomInfoFromLink = (link: string) => {
   const formatedLink = link.replace("/#", "");
   const url = new URL(formatedLink);
 
   const urlSearchParams = url.searchParams;
+  const rtcKey = urlSearchParams.get("key");
   const rtcId = url.pathname
     .substring(url.pathname.lastIndexOf("/"))
     .replace("/", "");
+  if (!rtcKey || !rtcId) {
+    throw new Error(
+      "rtc id and rtc key must be passed to url before rendering whiteboard",
+    );
+  }
   const collabParams = urlSearchParams.get("collab");
-  const rtcKey = urlSearchParams.get("key");
   const path = url.pathname.substring(1, url.pathname.length);
   const contractAddress = path.substring(0, path.indexOf("/"));
-  const key = getISEAKeyPair(rtcKey as string);
-  return { rtcId, collabParams, rtcKey: key, contractAddress };
+  const { contentKey } = getWhiteboardKeys(rtcKey as string);
+  return { rtcId, collabParams, rtcKey: contentKey, contractAddress };
 };
 
 const detectedLangCode = languageDetector.detect() || defaultLang.code;
@@ -167,11 +181,13 @@ export const appLangCodeAtom = atom(
 
 const ExcalidrawWrapper = ({
   topRightUI,
+  topLeftUI,
 }: {
   topRightUI?: (
     isCollaborating: boolean,
     setCollabDialogShown: (update: SetStateAction<boolean>) => void,
   ) => JSX.Element;
+  topLeftUI?: () => JSX.Element;
 }) => {
   const [errorMessage, setErrorMessage] = useState("");
   const [langCode, setLangCode] = useAtom(appLangCodeAtom);
@@ -220,15 +236,87 @@ const ExcalidrawWrapper = ({
   });
 
   useEffect(() => {
-    if (!excalidrawAPI || (!isCollabDisabled && !collabAPI)) {
+    if (
+      !excalidrawAPI ||
+      (!isCollabDisabled && !collabAPI) ||
+      !canvasId ||
+      !canvasDecryptionkey
+    ) {
       return;
     }
+    const loadImages = (
+      data: ResolutionType<typeof initializeScene>,
+      isInitialLoad = false,
+    ) => {
+      if (!data) {
+        return;
+      }
+      if (collabAPI?.isCollaborating()) {
+        if (data.elements) {
+          // collabAPI
+          //   .fetchImageFilesFromIPFS({
+          //     elements: data.elements,
+          //     forceFetchFiles: true,
+          //   })
+          //   .then(({ loadedFiles, erroredFiles }) => {
+          //     excalidrawAPI.addFiles(loadedFiles);
+          //     updateStaleImageStatuses({
+          //       excalidrawAPI,
+          //       erroredFiles,
+          //       elements: excalidrawAPI.getSceneElementsIncludingDeleted(),
+          //     });
+          //   });
+        }
+      }
+      const fileIds =
+        data.elements?.reduce((acc, element) => {
+          if (isInitializedImageElement(element)) {
+            return acc.concat(element.fileId);
+          }
+          return acc;
+        }, [] as FileId[]) || [];
+
+      // if (data.isExternalScene) {
+      //   loadFilesFromFirebase(
+      //     `${FIREBASE_STORAGE_PREFIXES.shareLinkFiles}/${data.id}`,
+      //     data.key,
+      //     fileIds,
+      //   ).then(({ loadedFiles, erroredFiles }) => {
+      //     excalidrawAPI.addFiles(loadedFiles);
+      //     updateStaleImageStatuses({
+      //       excalidrawAPI,
+      //       erroredFiles,
+      //       elements: excalidrawAPI.getSceneElementsIncludingDeleted(),
+      //     });
+      //   });
+      // }
+      if (isInitialLoad) {
+        if (fileIds.length) {
+          LocalData.fileStorage
+            .getFiles(fileIds)
+            .then(({ loadedFiles, erroredFiles }) => {
+              if (loadedFiles.length) {
+                excalidrawAPI.addFiles(loadedFiles);
+              }
+              updateStaleImageStatuses({
+                excalidrawAPI,
+                erroredFiles,
+                elements: excalidrawAPI.getSceneElementsIncludingDeleted(),
+              });
+            });
+        }
+        // on fresh load, clear unused files from IDB (from previous
+        // session)
+        LocalData.fileStorage.clearObsoleteFiles({ currentFileIds: fileIds });
+      }
+    };
     initializeScene({
       collabAPI,
       excalidrawAPI,
       provider,
       canvasId,
     }).then((data) => {
+      loadImages(data, /* isInitialLoad */ true);
       initialStatePromiseRef.current.promise.resolve(data);
     });
 
@@ -400,6 +488,34 @@ const ExcalidrawWrapper = ({
     }
 
     setTheme(appState.theme);
+    if (!LocalData.isSavePaused()) {
+      LocalData.save(elements, files, () => {
+        if (excalidrawAPI) {
+          let didChange = false;
+
+          const elements = excalidrawAPI
+            .getSceneElementsIncludingDeleted()
+            .map((element) => {
+              if (
+                LocalData.fileStorage.shouldUpdateImageElementStatus(element)
+              ) {
+                const newElement = newElementWith(element, { status: "saved" });
+                if (newElement !== element) {
+                  didChange = true;
+                }
+                return newElement;
+              }
+              return element;
+            });
+
+          if (didChange) {
+            excalidrawAPI.updateScene({
+              elements,
+            });
+          }
+        }
+      });
+    }
   };
 
   const [latestShareableLink, setLatestShareableLink] = useState<string | null>(
@@ -509,6 +625,7 @@ const ExcalidrawWrapper = ({
           setCollabDialogShown={setCollabDialogShown}
           isCollaborating={isCollaborating}
           isCollabEnabled={!isCollabDisabled}
+          topLeftUI={topLeftUI}
         />
         <AppWelcomeScreen
           setCollabDialogShown={setCollabDialogShown}
@@ -562,7 +679,9 @@ const ExcalidrawWrapper = ({
 
 const ExcalidrawApp = ({
   topRightUI,
+  topLeftUI,
 }: {
+  topLeftUI?: () => JSX.Element;
   topRightUI?: (
     isCollaborating: boolean,
     setCollabDialogShown: (update: SetStateAction<boolean>) => void,
@@ -571,7 +690,7 @@ const ExcalidrawApp = ({
   return (
     <TopErrorBoundary>
       <Provider unstable_createStore={() => appJotaiStore}>
-        <ExcalidrawWrapper topRightUI={topRightUI} />
+        <ExcalidrawWrapper topLeftUI={topLeftUI} topRightUI={topRightUI} />
       </Provider>
     </TopErrorBoundary>
   );

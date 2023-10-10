@@ -11,10 +11,10 @@
  */
 
 import { createStore, entries, del, getMany, set, setMany } from "idb-keyval";
-import { clearAppStateForLocalStorage } from "../../../../appState";
-import { clearElementsForLocalStorage } from "../../../../element";
+// import { clearAppStateForLocalStorage } from "../../../../appState";
+// import { clearElementsForLocalStorage } from "../../../../element";
 import { ExcalidrawElement, FileId } from "../../../../element/types";
-import { AppState, BinaryFileData, BinaryFiles } from "../../../../types";
+import { BinaryFileData, BinaryFiles } from "../../../../types";
 import { debounce } from "../../../../utils";
 import { SAVE_TO_LOCAL_STORAGE_TIMEOUT, STORAGE_KEYS } from "../app_constants";
 import { FileManager } from "./FileManager";
@@ -43,25 +43,25 @@ class LocalFileManager extends FileManager {
   };
 }
 
-const saveDataStateToLocalStorage = (
-  elements: readonly ExcalidrawElement[],
-  appState: AppState,
-) => {
-  try {
-    localStorage.setItem(
-      STORAGE_KEYS.LOCAL_STORAGE_ELEMENTS,
-      JSON.stringify(clearElementsForLocalStorage(elements)),
-    );
-    localStorage.setItem(
-      STORAGE_KEYS.LOCAL_STORAGE_APP_STATE,
-      JSON.stringify(clearAppStateForLocalStorage(appState)),
-    );
-    updateBrowserStateVersion(STORAGE_KEYS.VERSION_DATA_STATE);
-  } catch (error: any) {
-    // Unable to access window.localStorage
-    console.error(error);
-  }
-};
+// const saveDataStateToLocalStorage = (
+//   elements: readonly ExcalidrawElement[],
+//   appState: AppState,
+// ) => {
+//   try {
+//     localStorage.setItem(
+//       STORAGE_KEYS.LOCAL_STORAGE_ELEMENTS,
+//       JSON.stringify(clearElementsForLocalStorage(elements)),
+//     );
+//     localStorage.setItem(
+//       STORAGE_KEYS.LOCAL_STORAGE_APP_STATE,
+//       JSON.stringify(clearAppStateForLocalStorage(appState)),
+//     );
+//     updateBrowserStateVersion(STORAGE_KEYS.VERSION_DATA_STATE);
+//   } catch (error: any) {
+//     // Unable to access window.localStorage
+//     console.error(error);
+//   }
+// };
 
 type SavingLockTypes = "collaboration";
 
@@ -69,12 +69,9 @@ export class LocalData {
   private static _save = debounce(
     async (
       elements: readonly ExcalidrawElement[],
-      appState: AppState,
       files: BinaryFiles,
       onFilesSaved: () => void,
     ) => {
-      saveDataStateToLocalStorage(elements, appState);
-
       await this.fileStorage.saveFiles({
         elements,
         files,
@@ -87,13 +84,12 @@ export class LocalData {
   /** Saves DataState, including files. Bails if saving is paused */
   static save = (
     elements: readonly ExcalidrawElement[],
-    appState: AppState,
     files: BinaryFiles,
     onFilesSaved: () => void,
   ) => {
     // we need to make the `isSavePaused` check synchronously (undebounced)
     if (!this.isSavePaused()) {
-      this._save(elements, appState, files, onFilesSaved);
+      this._save(elements, files, onFilesSaved);
     }
   };
 
