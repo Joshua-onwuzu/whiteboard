@@ -186,6 +186,7 @@ const ExcalidrawWrapper = ({
   topRightUI?: (
     isCollaborating: boolean,
     setCollabDialogShown: (update: SetStateAction<boolean>) => void,
+    api: ExcalidrawImperativeAPI | null,
   ) => JSX.Element;
   topLeftUI?: () => JSX.Element;
 }) => {
@@ -617,7 +618,7 @@ const ExcalidrawWrapper = ({
             //   isCollaborating={isCollaborating}
             //   onSelect={() => setCollabDialogShown(true)}
             // />
-            topRightUI(isCollaborating, setCollabDialogShown)
+            topRightUI(isCollaborating, setCollabDialogShown, excalidrawAPI)
           );
         }}
       >
