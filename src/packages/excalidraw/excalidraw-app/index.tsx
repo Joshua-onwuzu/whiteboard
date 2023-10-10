@@ -686,6 +686,7 @@ const ExcalidrawApp = ({
   topRightUI?: (
     isCollaborating: boolean,
     setCollabDialogShown: (update: SetStateAction<boolean>) => void,
+    api: ExcalidrawImperativeAPI | null,
   ) => JSX.Element;
 }) => {
   return (
