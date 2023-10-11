@@ -54,7 +54,7 @@ export interface CollabAPI {
 }
 export const instantiateGun = () => {
   return Gun({
-    peers: ["http://localhost:8765/gun"],
+    peers: ["https://fileverse-gun-server.herokuapp.com/gun"],
   });
 };
 export const instantiateSEA = () => {
