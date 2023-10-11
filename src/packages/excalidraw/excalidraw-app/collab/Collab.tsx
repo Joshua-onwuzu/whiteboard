@@ -83,6 +83,7 @@ class Collab extends PureComponent<Props, CollabState> {
   isNewCollaborating: boolean;
   webrtcProvider: WebrtcProvider | null;
   searchParams: URLSearchParams;
+  gunAddress: string;
   // fileManager: FileManager;
 
   private socketInitializationTimer?: number;
@@ -106,6 +107,7 @@ class Collab extends PureComponent<Props, CollabState> {
     this.activeIntervalId = null;
     this.idleTimeoutId = null;
     this.yMap = props.yMap;
+    this.gunAddress = `${this.contractAddress}/document/content/${this.canvasId}`;
     // this.fileManager = new FileManager({
     //   getFiles: async (fileIds) => {
     //     const roomKey = this.decryptionKey;
@@ -274,7 +276,7 @@ class Collab extends PureComponent<Props, CollabState> {
         const contentNode = instantiateGun()
           .user()
           .auth(decryptionKey as ISEAPair)
-          .get(`${contractAddress}/document/content/${canvasId}`);
+          .get(this.gunAddress);
         contentNode.on(async (data: string) => {
           const decryptedData: { elements: readonly ExcalidrawElement[] } =
             await Sea.decrypt(data, this.decryptionKey);
@@ -430,7 +432,7 @@ class Collab extends PureComponent<Props, CollabState> {
     const node = instantiateGun()
       .user()
       .auth(this.decryptionKey)
-      .get(`${this.contractAddress}/whiteboard/${this.canvasId}/mouse`);
+      .get(this.gunAddress);
     const elements = this.excalidrawAPI.getSceneElementsIncludingDeleted();
     const data = {
       elements,
