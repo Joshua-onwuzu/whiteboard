@@ -126,7 +126,7 @@ const initializeScene = async (opts: {
     repairBindings: true,
   });
   if (opts.collabAPI && opts.excalidrawAPI) {
-    await opts.collabAPI.startCollaboration();
+    opts.collabAPI.startCollaboration();
   }
   return {
     elements: data.elements,

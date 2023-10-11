@@ -264,12 +264,8 @@ class Collab extends PureComponent<Props, CollabState> {
 
   private getSavedCanvasElementsFromGun = async ({
     decryptionKey,
-    contractAddress,
-    canvasId,
   }: {
     decryptionKey: ISEAPair;
-    contractAddress: string;
-    canvasId: string;
   }): Promise<readonly ExcalidrawElement[]> => {
     const elements = await Promise.race([
       new Promise((resolve) => {
@@ -284,7 +280,7 @@ class Collab extends PureComponent<Props, CollabState> {
           contentNode.off();
         });
       }),
-      new Promise((resolve) => setTimeout(() => resolve([]), 2000)),
+      new Promise((resolve) => setTimeout(() => resolve([]), 5000)),
     ]);
     return elements as readonly ExcalidrawElement[];
   };
@@ -307,6 +303,7 @@ class Collab extends PureComponent<Props, CollabState> {
      *
      */
     this.observeYMap();
+    await this.reconcileElementFromGun();
     if (this.isNewCollaborating) {
       this.activateCollaboration();
     }
@@ -463,6 +460,21 @@ class Collab extends PureComponent<Props, CollabState> {
     });
   };
 
+  private reconcileElementFromGun = async () => {
+    const savedElements = await this.getSavedCanvasElementsFromGun({
+      decryptionKey: this.decryptionKey,
+    });
+    const elements = this.reconcileElements(savedElements);
+    /**
+     * Apply the reconciled elements on ydoc
+     *
+     */
+    this.yMap.doc?.transact(() => {
+      this.yMap.set("elements", JSON.parse(JSON.stringify(elements)));
+    });
+    return elements;
+  };
+
   activateCollaboration = async () => {
     this.setCollaborationUrl();
     const provider = new WebrtcProvider(
@@ -489,34 +501,17 @@ class Collab extends PureComponent<Props, CollabState> {
     }
     /**
      *
-     * pick save items from on and reconcile with current scene
+     * pick save items from GUN and reconcile with current scene
      *
      */
 
-    const savedElements = await this.getSavedCanvasElementsFromGun({
-      decryptionKey: this.decryptionKey,
-      contractAddress: this.contractAddress,
-      canvasId: this.canvasId,
-    });
-    const canvasReconciledElements = this.reconcileElements(savedElements);
+    const _elements = await this.reconcileElementFromGun();
 
-    /**
-     * Apply the reconciled elements on ydoc
-     *
-     */
-    this.yMap.doc?.transact(() => {
-      this.yMap.set(
-        "elements",
-        JSON.parse(JSON.stringify(canvasReconciledElements)),
-      );
-    });
     this.initializeIdleDetector();
     this.setState({
       activeRoomLink: window.location.href,
     });
-    this.setLastBroadcastedOrReceivedSceneVersion(
-      getSceneVersion(canvasReconciledElements),
-    );
+    this.setLastBroadcastedOrReceivedSceneVersion(getSceneVersion(_elements));
 
     /**
      * Whenever there is a update on ydoc save elements to gun
@@ -525,10 +520,6 @@ class Collab extends PureComponent<Props, CollabState> {
     this.yMap.doc?.on("update", async () => {
       this.saveCanvasStateOnGun();
     });
-    /**
-     * Listen for cursor updates and update scene
-     *
-     */
 
     this.setIsCollaborating(true);
   };
