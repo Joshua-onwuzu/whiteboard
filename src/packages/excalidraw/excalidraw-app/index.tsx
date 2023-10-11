@@ -20,7 +20,7 @@ import {
   Theme,
 } from "../../../element/types";
 import { useCallbackRefState } from "../../../hooks/useCallbackRefState";
-import { newElementWith } from "../../../../src/element/mutateElement";
+// import { newElementWith } from "../../../../src/element/mutateElement";
 import { t } from "../../../i18n";
 import { Excalidraw, defaultLang } from "../index";
 import {
@@ -80,7 +80,7 @@ import { OverwriteConfirmDialog } from "../../../components/OverwriteConfirm/Ove
 import { IndexeddbPersistence } from "y-indexeddb";
 import { ISEAPair } from "gun";
 import { Base64 } from "base64-string";
-import { ResolutionType } from "../../../utility-types";
+// import { ResolutionType } from "../../../utility-types";
 
 polyfill();
 
@@ -245,79 +245,79 @@ const ExcalidrawWrapper = ({
     ) {
       return;
     }
-    const loadImages = (
-      data: ResolutionType<typeof initializeScene>,
-      isInitialLoad = false,
-    ) => {
-      if (!data) {
-        return;
-      }
-      if (collabAPI?.isCollaborating()) {
-        if (data.elements) {
-          // collabAPI
-          //   .fetchImageFilesFromIPFS({
-          //     elements: data.elements,
-          //     forceFetchFiles: true,
-          //   })
-          //   .then(({ loadedFiles, erroredFiles }) => {
-          //     excalidrawAPI.addFiles(loadedFiles);
-          //     updateStaleImageStatuses({
-          //       excalidrawAPI,
-          //       erroredFiles,
-          //       elements: excalidrawAPI.getSceneElementsIncludingDeleted(),
-          //     });
-          //   });
-        }
-      }
-      const fileIds =
-        data.elements?.reduce((acc, element) => {
-          if (isInitializedImageElement(element)) {
-            return acc.concat(element.fileId);
-          }
-          return acc;
-        }, [] as FileId[]) || [];
+    // const loadImages = (
+    //   data: ResolutionType<typeof initializeScene>,
+    //   isInitialLoad = false,
+    // ) => {
+    //   if (!data) {
+    //     return;
+    //   }
+    //   if (collabAPI?.isCollaborating()) {
+    //     if (data.elements) {
+    //       // collabAPI
+    //       //   .fetchImageFilesFromIPFS({
+    //       //     elements: data.elements,
+    //       //     forceFetchFiles: true,
+    //       //   })
+    //       //   .then(({ loadedFiles, erroredFiles }) => {
+    //       //     excalidrawAPI.addFiles(loadedFiles);
+    //       //     updateStaleImageStatuses({
+    //       //       excalidrawAPI,
+    //       //       erroredFiles,
+    //       //       elements: excalidrawAPI.getSceneElementsIncludingDeleted(),
+    //       //     });
+    //       //   });
+    //     }
+    //   }
+    //   const fileIds =
+    //     data.elements?.reduce((acc, element) => {
+    //       if (isInitializedImageElement(element)) {
+    //         return acc.concat(element.fileId);
+    //       }
+    //       return acc;
+    //     }, [] as FileId[]) || [];
 
-      // if (data.isExternalScene) {
-      //   loadFilesFromFirebase(
-      //     `${FIREBASE_STORAGE_PREFIXES.shareLinkFiles}/${data.id}`,
-      //     data.key,
-      //     fileIds,
-      //   ).then(({ loadedFiles, erroredFiles }) => {
-      //     excalidrawAPI.addFiles(loadedFiles);
-      //     updateStaleImageStatuses({
-      //       excalidrawAPI,
-      //       erroredFiles,
-      //       elements: excalidrawAPI.getSceneElementsIncludingDeleted(),
-      //     });
-      //   });
-      // }
-      if (isInitialLoad) {
-        if (fileIds.length) {
-          LocalData.fileStorage
-            .getFiles(fileIds)
-            .then(({ loadedFiles, erroredFiles }) => {
-              if (loadedFiles.length) {
-                excalidrawAPI.addFiles(loadedFiles);
-              }
-              updateStaleImageStatuses({
-                excalidrawAPI,
-                erroredFiles,
-                elements: excalidrawAPI.getSceneElementsIncludingDeleted(),
-              });
-            });
-        }
-        // on fresh load, clear unused files from IDB (from previous
-        // session)
-        LocalData.fileStorage.clearObsoleteFiles({ currentFileIds: fileIds });
-      }
-    };
+    //   // if (data.isExternalScene) {
+    //   //   loadFilesFromFirebase(
+    //   //     `${FIREBASE_STORAGE_PREFIXES.shareLinkFiles}/${data.id}`,
+    //   //     data.key,
+    //   //     fileIds,
+    //   //   ).then(({ loadedFiles, erroredFiles }) => {
+    //   //     excalidrawAPI.addFiles(loadedFiles);
+    //   //     updateStaleImageStatuses({
+    //   //       excalidrawAPI,
+    //   //       erroredFiles,
+    //   //       elements: excalidrawAPI.getSceneElementsIncludingDeleted(),
+    //   //     });
+    //   //   });
+    //   // }
+    //   if (isInitialLoad) {
+    //     if (fileIds.length) {
+    //       LocalData.fileStorage
+    //         .getFiles(fileIds)
+    //         .then(({ loadedFiles, erroredFiles }) => {
+    //           if (loadedFiles.length) {
+    //             excalidrawAPI.addFiles(loadedFiles);
+    //           }
+    //           updateStaleImageStatuses({
+    //             excalidrawAPI,
+    //             erroredFiles,
+    //             elements: excalidrawAPI.getSceneElementsIncludingDeleted(),
+    //           });
+    //         });
+    //     }
+    //     // on fresh load, clear unused files from IDB (from previous
+    //     // session)
+    //     LocalData.fileStorage.clearObsoleteFiles({ currentFileIds: fileIds });
+    //   }
+    // };
     initializeScene({
       collabAPI,
       excalidrawAPI,
       provider,
       canvasId,
     }).then((data) => {
-      loadImages(data, /* isInitialLoad */ true);
+      // loadImages(data, /* isInitialLoad */ true);
       initialStatePromiseRef.current.promise.resolve(data);
     });
 
@@ -489,34 +489,34 @@ const ExcalidrawWrapper = ({
     }
 
     setTheme(appState.theme);
-    if (!LocalData.isSavePaused()) {
-      LocalData.save(elements, files, () => {
-        if (excalidrawAPI) {
-          let didChange = false;
+    // if (!LocalData.isSavePaused()) {
+    //   LocalData.save(elements, files, () => {
+    //     if (excalidrawAPI) {
+    //       let didChange = false;
 
-          const elements = excalidrawAPI
-            .getSceneElementsIncludingDeleted()
-            .map((element) => {
-              if (
-                LocalData.fileStorage.shouldUpdateImageElementStatus(element)
-              ) {
-                const newElement = newElementWith(element, { status: "saved" });
-                if (newElement !== element) {
-                  didChange = true;
-                }
-                return newElement;
-              }
-              return element;
-            });
+    //       const elements = excalidrawAPI
+    //         .getSceneElementsIncludingDeleted()
+    //         .map((element) => {
+    //           if (
+    //             LocalData.fileStorage.shouldUpdateImageElementStatus(element)
+    //           ) {
+    //             const newElement = newElementWith(element, { status: "saved" });
+    //             if (newElement !== element) {
+    //               didChange = true;
+    //             }
+    //             return newElement;
+    //           }
+    //           return element;
+    //         });
 
-          if (didChange) {
-            excalidrawAPI.updateScene({
-              elements,
-            });
-          }
-        }
-      });
-    }
+    //       if (didChange) {
+    //         excalidrawAPI.updateScene({
+    //           elements,
+    //         });
+    //       }
+    //     }
+    //   });
+    // }
   };
 
   const [latestShareableLink, setLatestShareableLink] = useState<string | null>(
