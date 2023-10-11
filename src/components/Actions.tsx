@@ -282,7 +282,7 @@ export const ShapesSwitcher = ({
             />
           );
         }
-        return <></>;
+        return <span key={value}></span>;
       })}
       {/* <div className="App-toolbar__divider" /> */}
       {/* TEMP HACK because dropdown doesn't work well inside mobile toolbar */}
