@@ -426,6 +426,7 @@ const ExcalidrawWrapper = ({
     window.addEventListener(EVENT.BLUR, visibilityChange, false);
     document.addEventListener(EVENT.VISIBILITY_CHANGE, visibilityChange, false);
     window.addEventListener(EVENT.FOCUS, visibilityChange, false);
+    console.log("outside");
     return () => {
       window.removeEventListener(EVENT.HASHCHANGE, onHashChange, false);
       window.removeEventListener(EVENT.BLUR, visibilityChange, false);
@@ -435,7 +436,9 @@ const ExcalidrawWrapper = ({
         visibilityChange,
         false,
       );
+      console.log(collabAPI, isCollaborating, "herer");
       if (collabAPI && isCollaborating) {
+        console.log("inner beuiijkjk");
         collabAPI.stopCollaboration();
       }
       clearTimeout(titleTimeout);
