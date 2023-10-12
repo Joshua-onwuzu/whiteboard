@@ -261,6 +261,8 @@ class Collab extends PureComponent<Props, CollabState> {
     if (this.webrtcProvider) {
       this.webrtcProvider.disconnect();
       this.webrtcProvider.destroy();
+      this.webrtcProvider = null;
+      alert("removing webrtc");
     }
     this.collaborators = new Map();
     this.excalidrawAPI.updateScene({
@@ -445,7 +447,7 @@ class Collab extends PureComponent<Props, CollabState> {
   };
 
   setCollaborationUrl = () => {
-    window.history.pushState(
+    window.history.replaceState(
       {},
       "",
       `${location.origin}${location.hash}&collab=true`,
