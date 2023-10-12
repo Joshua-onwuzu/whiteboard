@@ -486,7 +486,7 @@ class Collab extends PureComponent<Props, CollabState> {
       return;
     }
     const url = this.getUrl();
-    if (url.searchParams.get("collab")) {
+    if (!url.searchParams.get("collab")) {
       this.setCollaborationUrl();
     }
 
