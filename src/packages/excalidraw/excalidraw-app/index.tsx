@@ -435,6 +435,9 @@ const ExcalidrawWrapper = ({
         visibilityChange,
         false,
       );
+      if (collabAPI && isCollaborating) {
+        collabAPI.stopCollaboration();
+      }
       clearTimeout(titleTimeout);
     };
   }, [isCollabDisabled, collabAPI, excalidrawAPI, setLangCode]);

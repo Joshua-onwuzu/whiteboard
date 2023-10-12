@@ -230,17 +230,23 @@ class Collab extends PureComponent<Props, CollabState> {
   //     .map((element) => (element as InitializedExcalidrawImageElement).fileId);
   //   return await this.fileManager.getFiles(unfetchedImages);
   // };
-  private removeCollaborationUrl = () => {
+  private getUrl = () => {
     const link = window.location.href;
     const formatedLink = link.replace("/#", "");
     const url = new URL(formatedLink);
+    return url;
+  };
+  private removeCollaborationUrl = () => {
+    const url = this.getUrl();
     const urlSearchParams = url.searchParams;
-    urlSearchParams.delete("collab");
-    window.history.pushState(
-      {},
-      APP_NAME,
-      `${url.origin}/#${url.pathname}${url.search}`,
-    );
+    if (urlSearchParams.get("collab")) {
+      urlSearchParams.delete("collab");
+      window.history.replaceState(
+        {},
+        APP_NAME,
+        `${url.origin}/#${url.pathname}${url.search}`,
+      );
+    }
   };
   stopCollaboration = (keepRemoteState = true) => {
     this.saveCanvasStateOnGun();
@@ -280,7 +286,7 @@ class Collab extends PureComponent<Props, CollabState> {
           contentNode.off();
         });
       }),
-      new Promise((resolve) => setTimeout(() => resolve([]), 5000)),
+      new Promise((resolve) => setTimeout(() => resolve([]), 2000)),
     ]);
     return elements as readonly ExcalidrawElement[];
   };
@@ -476,7 +482,14 @@ class Collab extends PureComponent<Props, CollabState> {
   };
 
   activateCollaboration = async () => {
-    this.setCollaborationUrl();
+    if (this.webrtcProvider) {
+      return;
+    }
+    const url = this.getUrl();
+    if (url.searchParams.get("collab")) {
+      this.setCollaborationUrl();
+    }
+
     const provider = new WebrtcProvider(
       this.canvasId,
       this.yMap?.doc as Y.Doc,
@@ -506,7 +519,6 @@ class Collab extends PureComponent<Props, CollabState> {
      */
 
     const _elements = await this.reconcileElementFromGun();
-
     this.initializeIdleDetector();
     this.setState({
       activeRoomLink: window.location.href,

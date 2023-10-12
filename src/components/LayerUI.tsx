@@ -361,7 +361,12 @@ const LayerUI = ({
       </DefaultSidebar.Trigger> */}
       <DefaultOverwriteConfirmDialog />
       {/* ------------------------------------------------------------------ */}
-
+      <div
+        onClick={() => {
+          setAppState({ openDialog: "imageExport" });
+        }}
+        id="exportButton"
+      ></div>
       {appState.isLoading && <LoadingMessage delay={250} />}
       {appState.errorMessage && (
         <ErrorDialog onClose={() => setAppState({ errorMessage: null })}>
