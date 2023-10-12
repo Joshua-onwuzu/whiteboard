@@ -68,7 +68,6 @@ import {
   useHandleLibrary,
 } from "../../../data/library";
 import { AppMainMenu } from "./components/AppMainMenu";
-import { AppWelcomeScreen } from "./components/AppWelcomeScreen";
 import { AppFooter } from "./components/AppFooter";
 import { atom, Provider, SetStateAction, useAtom, useAtomValue } from "jotai";
 import { useAtomWithInitialValue } from "../../../jotai";
@@ -187,6 +186,7 @@ const ExcalidrawWrapper = ({
     isCollaborating: boolean,
     setCollabDialogShown: (update: SetStateAction<boolean>) => void,
     api: ExcalidrawImperativeAPI | null,
+    openDownloadModal: () => void,
   ) => JSX.Element;
   topLeftUI?: () => JSX.Element;
 }) => {
@@ -613,6 +613,9 @@ const ExcalidrawWrapper = ({
         autoFocus={true}
         theme={theme}
         renderTopRightUI={(isMobile) => {
+          const openDownloadModal = () => {
+            document.getElementById("exportButton")?.click();
+          };
           if (isMobile || !collabAPI || isCollabDisabled || !topRightUI) {
             return null;
           }
@@ -621,7 +624,12 @@ const ExcalidrawWrapper = ({
             //   isCollaborating={isCollaborating}
             //   onSelect={() => setCollabDialogShown(true)}
             // />
-            topRightUI(isCollaborating, setCollabDialogShown, excalidrawAPI)
+            topRightUI(
+              isCollaborating,
+              setCollabDialogShown,
+              excalidrawAPI,
+              openDownloadModal,
+            )
           );
         }}
       >
@@ -631,10 +639,10 @@ const ExcalidrawWrapper = ({
           isCollabEnabled={!isCollabDisabled}
           topLeftUI={topLeftUI}
         />
-        <AppWelcomeScreen
+        {/* <AppWelcomeScreen
           setCollabDialogShown={setCollabDialogShown}
           isCollabEnabled={!isCollabDisabled}
-        />
+        /> */}
         <OverwriteConfirmDialog>
           <OverwriteConfirmDialog.Actions.ExportToImage />
           <OverwriteConfirmDialog.Actions.SaveToDisk />
