@@ -262,12 +262,13 @@ class Collab extends PureComponent<Props, CollabState> {
       this.webrtcProvider.disconnect();
       this.webrtcProvider.destroy();
       this.webrtcProvider = null;
-      alert("removing webrtc");
     }
-    this.collaborators = new Map();
-    this.excalidrawAPI.updateScene({
-      collaborators: this.collaborators,
-    });
+    if (keepRemoteState) {
+      this.collaborators = new Map();
+      this.excalidrawAPI.updateScene({
+        collaborators: this.collaborators,
+      });
+    }
   };
 
   private getSavedCanvasElementsFromGun = async ({
