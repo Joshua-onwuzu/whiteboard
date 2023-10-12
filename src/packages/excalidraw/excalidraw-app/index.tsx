@@ -698,6 +698,7 @@ const ExcalidrawApp = ({
     isCollaborating: boolean,
     setCollabDialogShown: (update: SetStateAction<boolean>) => void,
     api: ExcalidrawImperativeAPI | null,
+    openDownloadModal: () => void,
   ) => JSX.Element;
 }) => {
   return (
