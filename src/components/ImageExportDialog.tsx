@@ -7,7 +7,7 @@ import {
   actionExportWithDarkMode,
   actionChangeExportBackground,
   actionChangeExportEmbedScene,
-  actionChangeExportScale,
+  // actionChangeExportScale,
   actionChangeProjectName,
 } from "../actions/actionExport";
 import { probablySupportsClipboardBlob } from "../clipboard";
@@ -15,7 +15,7 @@ import {
   DEFAULT_EXPORT_PADDING,
   EXPORT_IMAGE_TYPES,
   isFirefox,
-  EXPORT_SCALES,
+  // EXPORT_SCALES,
 } from "../constants";
 
 import { canvasToBlob } from "../data/blob";
@@ -27,7 +27,7 @@ import { exportToCanvas } from "../packages/utils";
 
 import { copyIcon, downloadIcon, helpIcon } from "./icons";
 import { Dialog } from "./Dialog";
-import { RadioGroup } from "./RadioGroup";
+// import { RadioGroup } from "./RadioGroup";
 import { Switch } from "./Switch";
 import { Tooltip } from "./Tooltip";
 
@@ -78,7 +78,7 @@ const ImageExportModal = ({
     appState.exportWithDarkMode,
   );
   const [embedScene, setEmbedScene] = useState(appState.exportEmbedScene);
-  const [exportScale, setExportScale] = useState(appState.exportScale);
+  // const [exportScale, setExportScale] = useState(appState.exportScale);
 
   const previewRef = useRef<HTMLDivElement>(null);
   const [renderError, setRenderError] = useState<Error | null>(null);
@@ -220,7 +220,7 @@ const ImageExportModal = ({
             }}
           />
         </ExportSetting>
-        <ExportSetting
+        {/* <ExportSetting
           label={t("imageExportDialog.label.scale")}
           name="exportScale"
         >
@@ -236,7 +236,7 @@ const ImageExportModal = ({
               label: `${scale}\u00d7`,
             }))}
           />
-        </ExportSetting>
+        </ExportSetting> */}
 
         <div className="ImageExportModal__settings__buttons">
           <FilledButton
