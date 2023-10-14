@@ -438,6 +438,7 @@ const ExcalidrawWrapper = ({
       if (collabAPI) {
         collabAPI.stopCollaboration(false);
       }
+      provider.destroy();
       clearTimeout(titleTimeout);
     };
   }, [isCollabDisabled, collabAPI, excalidrawAPI, setLangCode]);
