@@ -268,6 +268,9 @@ class Collab extends PureComponent<Props, CollabState> {
       this.excalidrawAPI.updateScene({
         collaborators: this.collaborators,
       });
+    } else {
+      console.log("destroying, YDOC");
+      this.yMap.doc?.destroy();
     }
   };
 
@@ -297,6 +300,7 @@ class Collab extends PureComponent<Props, CollabState> {
     this.yMap.observe((event: any) => {
       if (event.transaction.origin !== this) {
         const el = this.yMap.toJSON()?.elements;
+        console.log("reconciled from not this  elements");
         const canvasReconciledElements = this.reconcileElements(el as any);
         this.excalidrawAPI.updateScene({
           elements: canvasReconciledElements,
