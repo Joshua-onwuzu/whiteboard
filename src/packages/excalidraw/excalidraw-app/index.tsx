@@ -245,9 +245,6 @@ const ExcalidrawWrapper = ({
     ) {
       return;
     }
-    provider.on("synced", () => {
-      console.log("INDEXDB SYNCED DATA");
-    });
     // const loadImages = (
     //   data: ResolutionType<typeof initializeScene>,
     //   isInitialLoad = false,
