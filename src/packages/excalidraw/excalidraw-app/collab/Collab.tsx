@@ -426,6 +426,8 @@ class Collab extends PureComponent<Props, CollabState> {
     ) {
       this.lastBroadcastedOrReceivedSceneVersion = getSceneVersion(elements);
 
+      this.saveCanvasStateOnGun();
+
       Y.transact(
         this.yMap?.doc as Y.Doc,
         () => {
@@ -436,7 +438,7 @@ class Collab extends PureComponent<Props, CollabState> {
       );
     }
   };
-  saveCanvasStateOnGun = async () => {
+  saveCanvasStateOnGun = throttle(async () => {
     const node = instantiateGun()
       .user()
       .auth(this.decryptionKey)
@@ -447,7 +449,7 @@ class Collab extends PureComponent<Props, CollabState> {
     };
     const encryptedData = await Sea.encrypt(data, this.decryptionKey);
     node.put(encryptedData);
-  };
+  }, 2000);
 
   setCollaborationUrl = () => {
     window.history.replaceState(
@@ -530,17 +532,8 @@ class Collab extends PureComponent<Props, CollabState> {
     });
     this.setLastBroadcastedOrReceivedSceneVersion(getSceneVersion(_elements));
 
-    /**
-     * Whenever there is a update on ydoc save elements to gun
-     *
-     */
-    this.yMap.doc?.on("update", async () => {
-      this.saveCanvasStateOnGun();
-    });
-
     this.setIsCollaborating(true);
   };
-
   syncElements = (
     elements: readonly ExcalidrawElement[],
     appState: AppState,
