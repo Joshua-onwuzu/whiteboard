@@ -444,11 +444,18 @@ class Collab extends PureComponent<Props, CollabState> {
       .auth(this.decryptionKey)
       .get(this.gunAddress);
     const elements = this.excalidrawAPI.getSceneElementsIncludingDeleted();
-    const data = {
-      elements,
-    };
-    const encryptedData = await Sea.encrypt(data, this.decryptionKey);
-    node.put(encryptedData);
+    if (elements.length > 0) {
+      const data = {
+        elements,
+      };
+      const encryptedData = await Sea.encrypt(data, this.decryptionKey);
+      node.put(encryptedData, (ack: any) => {
+        if (ack?.err) {
+          // eslint-disable-next-line no-console
+          console.log(ack?.err);
+        }
+      });
+    }
   }, 2000);
 
   setCollaborationUrl = () => {
